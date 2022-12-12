@@ -8,7 +8,7 @@
 
 ;; Set to true to include debug information in the generated output.
 ;; To set this at runtime, add '-dbg true' to the argument list.
-(def +debug+ false)
+(def +debug+ (atom false))
 
 ;; Bump account's token counter for token
 (defn toktab-inc [toktab [account token]]
@@ -87,7 +87,7 @@
 (defn account-for-descr [acc-maps descr account]
   (let [tokens (tokenize descr)
         p_tab  (p_table acc-maps tokens)]
-    (when +debug+
+    (when @+debug+
       (printf "; Deciding \"%s\" for %s%n", descr, account)
       (printf "; Tokens: ") (print tokens) (newline)
       (printf "; Account probabilities per token:%n")
@@ -460,7 +460,7 @@
 (defn -main [& args]
   (let [params   (parse-args cl-args-spec args)
         acc-maps (parse-ledger (get-arg params :ledger-file))]
-    (def +debug+ (get-arg params :debug))
+    (reset! +debug+ (get-arg params :debug))
     (when +debug+
       (let [acc-maps-dump-file (io/writer "acc_maps_dump.txt")]
         (binding [*out* acc-maps-dump-file]
