@@ -430,13 +430,13 @@
                             {:account counter-acc}]]))))
 
 ;; hooks allow the user to generate custom output for certain entries
-(def +ledger-entry-hooks+ nil)
+(def +ledger-entry-hooks+ (atom nil))
 
 (defn add-entry-hook [hook]
-  (def +ledger-entry-hooks+ (conj +ledger-entry-hooks+ hook)))
+  (swap! +ledger-entry-hooks+ #(conj % hook)))
 
 (defn process-hooks [entry]
-  (loop [hooks +ledger-entry-hooks+]
+  (loop [hooks @+ledger-entry-hooks+]
     (let [hook (first hooks)
           rest (rest hooks)]
       (if (nil? hook)

@@ -1,6 +1,7 @@
 (ns banks2ledger.core-test
-  (:require [clojure.test :refer [deftest is testing]]
-            [banks2ledger.core :refer :all]))
+  (:require [banks2ledger.core :refer :all]
+            [clojure.test :refer [deftest is testing]])
+  (:import (java.util Locale)))
 
 ;; Compare a and b for "equal enough" (used for testing float results)
 (defn f= [a b]
@@ -200,14 +201,14 @@
     (is (= (format-value 1234567.89) "1,234,567.89"))))
 
 (deftest test-format-value-with-nonUS-locale
-  (let [default-locale (java.util.Locale/getDefault)]
-    (java.util.Locale/setDefault (java.util.Locale. "sv" "SE"))
+  (let [default-locale (Locale/getDefault)]
+    (Locale/setDefault (Locale. "sv" "SE"))
     (testing "format-value-with-nonUS-locale"
       (is (= (format-value 0.0) "0.00"))
       (is (= (format-value -10.237) "-10.24"))
       (is (= (format-value 1234.56) "1,234.56"))
       (is (= (format-value 1234567.89) "1,234,567.89")))
-    (java.util.Locale/setDefault default-locale)))
+    (Locale/setDefault default-locale)))
 
 (deftest test-amount-value
   (testing "amount-value"
@@ -217,14 +218,14 @@
     (is (= (amount-value "1,234,567.89") 1234567.89))))
 
 (deftest test-amount-value-with-nonUS-locale
-  (let [default-locale (java.util.Locale/getDefault)]
-    (java.util.Locale/setDefault (java.util.Locale. "sv" "SE"))
+  (let [default-locale (Locale/getDefault)]
+    (Locale/setDefault (Locale. "sv" "SE"))
     (testing "amount-value-with-nonUS-locale"
       (is (= (amount-value "0.00") 0.0))
       (is (= (amount-value "-10.24") -10.24))
       (is (= (amount-value "1,234.56") 1234.56))
       (is (= (amount-value "1,234,567.89") 1234567.89)))
-    (java.util.Locale/setDefault default-locale)))
+    (Locale/setDefault default-locale)))
 
 (deftest test-convert-amount
   (testing "convert-amount"
