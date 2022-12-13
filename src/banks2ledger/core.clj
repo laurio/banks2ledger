@@ -323,11 +323,10 @@
   [args-spec arg rest-args]
   (if (not-any? #{arg} (optvec cl-args-spec))
     (print-usage-and-die (str "Invalid argument: " arg))
-    (let [value (first rest-args)
-          rest  (rest rest-args)]
-      (if (nil? value)
-        (print-usage-and-die (str "Value expected for option " arg))
-        (parse-args (set-arg args-spec arg value) rest)))))
+    (if-let [value (first rest-args)]
+      (parse-args (set-arg args-spec arg value)
+                  (rest rest-args))
+      (print-usage-and-die (str "Value expected for option " arg)))))
 
 
 ;; Go through the args list and return an updated args-spec
