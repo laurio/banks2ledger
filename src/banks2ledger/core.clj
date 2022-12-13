@@ -152,8 +152,7 @@
 ;; Predicate for full comment lines in the ledger file
 (defn is-comment-line
   [line]
-  (some #(string/starts-with? line %)
-        [";" "#" "|" "*" "%"]))
+  (#{\; \# \| \* \%} (first line)))
 
 
 ;; Split ledger entry string to a sequence of separate lines
