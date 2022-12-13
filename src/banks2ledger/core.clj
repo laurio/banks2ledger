@@ -542,14 +542,13 @@
 (defn process-hooks
   [entry]
   (loop [hooks @+ledger-entry-hooks+]
-    (let [hook (first hooks)
-          rest (rest hooks)]
+    (let [{:keys [formatter predicate] :as hook} (first hooks)]
       (if (nil? hook)
         (print-ledger-entry (add-default-verifications entry))
-        (if ((:predicate hook) entry)
-          (when (:formatter hook)
-            ((:formatter hook) entry))
-          (recur rest))))))
+        (if (predicate entry)
+          (when formatter
+            (formatter entry))
+          (recur (rest hooks)))))))
 
 
 ;; generate a ledger entry -- invoke user-defined hooks
@@ -570,12 +569,10 @@
   (let [params   (parse-args cl-args-spec args)
         acc-maps (parse-ledger (get-arg params :ledger-file))]
     (reset! +debug+ (get-arg params :debug))
-    (when +debug+
-      ;; todo: with-open?
-      (let [acc-maps-dump-file (io/writer "acc_maps_dump.txt")]
+    (when @+debug+
+      (with-open [acc-maps-dump-file (io/writer "acc_maps_dump.txt")]
         (binding [*out* acc-maps-dump-file]
-          (print-acc-maps acc-maps))
-        (.close acc-maps-dump-file)))
+          (print-acc-maps acc-maps))))
     (some-> (get-arg params :hooks-file)
             load-file)
     (with-open [reader (io/reader
