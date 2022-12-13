@@ -1,16 +1,16 @@
 (ns banks2ledger.core-test
   (:require
-    [banks2ledger.core :refer [all-indices amount-value best-accounts
-                               cl-args-spec clip-string convert-amount
-                               convert-date format-colspec format-value
-                               get-arg get-col n_occur p_belong parse-args
-                               parse-ledger-entry print-ledger-entry
-                               split-by-indices split-ledger-entry tokenize
-                               toktab-inc toktab-update unquote-string]]
-    [clojure.test :refer [deftest is testing]])
+   [banks2ledger.core :refer [all-indices amount-value best-accounts
+                              cl-args-spec clip-string convert-amount
+                              convert-date format-colspec format-value
+                              get-arg get-col n_occur p_belong parse-args
+                              parse-ledger-entry print-ledger-entry
+                              split-by-indices split-ledger-entry tokenize
+                              toktab-inc toktab-update unquote-string]]
+   [clojure.test :refer [deftest is testing]])
   (:import
-    (java.util
-      Locale)))
+   (java.util
+    Locale Locale$Builder)))
 
 
 ;; Compare a and b for "equal enough" (used for testing float results)
@@ -18,10 +18,10 @@
   [a b]
   (cond (or (seq? a) (vector? a))
         (and (f= (first a) (first b))
-             (or (= '() (rest a))
-                 (= '() (rest b))
+             (or (empty? (rest a))
+                 (empty? (rest b))
                  (f= (rest a) (rest b))))
-        (and (float? a) (float? b))
+        (every? float? [a b])
         (< (abs (- a b)) 1E-6)
         :else
         (= a b)))
@@ -30,11 +30,11 @@
 ;; Make sure our test predicate works before using it...
 (deftest test-f=
   (testing "f="
-    (is (= false (f= 1.0 1.0123456)))
-    (is (= true (f= 1.0 1.0000001)))
-    (is (= true (f= [1.0 2.0] [1.0 1.9999997])))
-    (is (= true (f= '(:pi 3.1415926535 :lst [1.0 2.0])
-                    '(:pi 3.141592654 :lst [1.0 1.9999997]))))))
+    (is (not (f= 1.0 1.0123456)))
+    (is (f= 1.0 1.0000001))
+    (is (f= [1.0 2.0] [1.0 1.9999997]))
+    (is (f= [:pi 3.1415926535 :lst [1.0 2.0]]
+            [:pi 3.141592654 :lst [1.0 1.9999997]]))))
 
 
 (deftest test-toktab-inc
@@ -69,13 +69,13 @@
 (deftest test-tokenize
   (testing "tokenize"
     (is (= (tokenize "Forgalmi jutalék 01N00/702595/ számláról")
-           '("FORGALMI" "JUTALÉK" "01N00" "702595" "SZÁMLÁRÓL")))
+           ["FORGALMI" "JUTALÉK" "01N00" "702595" "SZÁMLÁRÓL"]))
     (is (= (tokenize "Vásárlás LIBRI ARKAD /N 20060923")
-           '("VÁSÁRLÁS" "LIBRI" "ARKAD" "N" "YYYYMMDD")))
+           ["VÁSÁRLÁS" "LIBRI" "ARKAD" "N" "YYYYMMDD"]))
     (is (= (tokenize "APOTEK HJART/16-03-21")
-           '("APOTEK" "HJART" "YY-MM-DD")))
+           ["APOTEK" "HJART" "YY-MM-DD"]))
     (is (= (tokenize "COOP KONSUM /16-03-17")
-           '("COOP" "KONSUM" "YY-MM-DD")))))
+           ["COOP" "KONSUM" "YY-MM-DD"]))))
 
 
 (deftest test-n_occur
@@ -106,92 +106,92 @@
                             "Acc2" {"tok1" 2, "tok2" 8}
                             "Acc3" {"tok2" 8}
                             "Acc4" {"tok1" 5, "tok2" 5}} "tok1")
-            '([0.625 "Acc4"]
-              [0.25 "Acc2"]
-              [0.125 "Acc1"])))))
+            [[0.625 "Acc4"]
+             [0.25 "Acc2"]
+             [0.125 "Acc1"]]))))
 
 
 (deftest test-split-ledger-entry
   (testing "split-ledger-entry"
     (is (= (split-ledger-entry
-             (str "2016/03/22 ICA NARA KAR/16-03-21\n"
-                  "    Expenses:Groceries:ICA                SEK 314.32\n"
-                  "    Assets:Bank account\n\n"))
-           '("2016/03/22 ICA NARA KAR/16-03-21"
-              "Expenses:Groceries:ICA                SEK 314.32"
-              "Assets:Bank account")))
+            (str "2016/03/22 ICA NARA KAR/16-03-21\n"
+                 "    Expenses:Groceries:ICA                SEK 314.32\n"
+                 "    Assets:Bank account\n\n"))
+           ["2016/03/22 ICA NARA KAR/16-03-21"
+            "Expenses:Groceries:ICA                SEK 314.32"
+            "Assets:Bank account"]))
     ;; same input, but with CRLF line endings:
     (is (= (split-ledger-entry
-             (str "2016/03/22 ICA NARA KAR/16-03-21\r\n"
-                  "    Expenses:Groceries:ICA                SEK 314.32\r\n"
-                  "    Assets:Bank account\r\n\r\n"))
-           '("2016/03/22 ICA NARA KAR/16-03-21"
-              "Expenses:Groceries:ICA                SEK 314.32"
-              "Assets:Bank account")))
+            (str "2016/03/22 ICA NARA KAR/16-03-21\r\n"
+                 "    Expenses:Groceries:ICA                SEK 314.32\r\n"
+                 "    Assets:Bank account\r\n\r\n"))
+           ["2016/03/22 ICA NARA KAR/16-03-21"
+            "Expenses:Groceries:ICA                SEK 314.32"
+            "Assets:Bank account"]))
     (is (= (split-ledger-entry
-             (str "2016/02/16 Lindra Second Hand, Kärrtorp | Baby stuff\n"
-                  "    Expenses:Clothing:Baby                 SEK 60.00\n"
-                  "    Assets:Bank account\n"))
-           '("2016/02/16 Lindra Second Hand, Kärrtorp | Baby stuff"
-              "Expenses:Clothing:Baby                 SEK 60.00"
-              "Assets:Bank account")))
+            (str "2016/02/16 Lindra Second Hand, Kärrtorp | Baby stuff\n"
+                 "    Expenses:Clothing:Baby                 SEK 60.00\n"
+                 "    Assets:Bank account\n"))
+           ["2016/02/16 Lindra Second Hand, Kärrtorp | Baby stuff"
+            "Expenses:Clothing:Baby                 SEK 60.00"
+            "Assets:Bank account"]))
     (is (= (split-ledger-entry
-             (str "; this is a global comment that is not applied to a specific transaction\n"
-                  "; it can start with any of the five characters ; # | * %\n"
-                  "    ; it is also valid in any column, not just at the start of the line\n"
-                  "# according to ledger-cli documentation,\n"
-                  "| the following characters are also\n"
-                  "* valid comment characters, if used at the\n"
-                  "% beginning of the line: # | * %\n"
-                  "2018/01/22 (1234567890) CLAS OHLSON /18-01-19 | Verktyg & material\n"
-                  "    ; NYCKELBRICKA 6-PA              19.90\n"
-                  "    ; PINCETTSATS 4-PAC              59.90\n"
-                  "    ; SKYDDGLASÖGON KL              179.00\n"
-                  "    ; BLOCKNYCKEL 24MM               69.90\n"
-                  "    ; ELTEJP 20MM SVART              29.90\n"
-                  "    Expenses:Supplies                     SEK 358.60\n"
-                  "    Assets:Bank account\n"))
-           '("2018/01/22 (1234567890) CLAS OHLSON /18-01-19 | Verktyg & material"
-              "Expenses:Supplies                     SEK 358.60"
-              "Assets:Bank account")))
+            (str "; this is a global comment that is not applied to a specific transaction\n"
+                 "; it can start with any of the five characters ; # | * %\n"
+                 "    ; it is also valid in any column, not just at the start of the line\n"
+                 "# according to ledger-cli documentation,\n"
+                 "| the following characters are also\n"
+                 "* valid comment characters, if used at the\n"
+                 "% beginning of the line: # | * %\n"
+                 "2018/01/22 (1234567890) CLAS OHLSON /18-01-19 | Verktyg & material\n"
+                 "    ; NYCKELBRICKA 6-PA              19.90\n"
+                 "    ; PINCETTSATS 4-PAC              59.90\n"
+                 "    ; SKYDDGLASÖGON KL              179.00\n"
+                 "    ; BLOCKNYCKEL 24MM               69.90\n"
+                 "    ; ELTEJP 20MM SVART              29.90\n"
+                 "    Expenses:Supplies                     SEK 358.60\n"
+                 "    Assets:Bank account\n"))
+           ["2018/01/22 (1234567890) CLAS OHLSON /18-01-19 | Verktyg & material"
+            "Expenses:Supplies                     SEK 358.60"
+            "Assets:Bank account"]))
     (is (= (split-ledger-entry
-             (str "; this is a global comment that is not applied to a specific transaction\n"
-                  "; it can start with any of the five characters ; # | * %\n"
-                  "    ; it is also valid in any column, not just at the start of the line\n"
-                  "# according to ledger-cli documentation,\n"
-                  "| the following characters are also\n"
-                  "* valid comment characters, if used at the\n"
-                  "% beginning of the line: # | * %\n"
-                  "\t; There\n"
-                  "  \t; Are          \n"
-                  "    ; Only Comments         \n"
-                  "    ; And Whitespace in this block!\n"))
-           '()))))
+            (str "; this is a global comment that is not applied to a specific transaction\n"
+                 "; it can start with any of the five characters ; # | * %\n"
+                 "    ; it is also valid in any column, not just at the start of the line\n"
+                 "# according to ledger-cli documentation,\n"
+                 "| the following characters are also\n"
+                 "* valid comment characters, if used at the\n"
+                 "% beginning of the line: # | * %\n"
+                 "\t; There\n"
+                 "  \t; Are          \n"
+                 "    ; Only Comments         \n"
+                 "    ; And Whitespace in this block!\n"))
+           []))))
 
 
 (deftest test-parse-ledger-entry
   (testing "parse-ledger-entry"
     (is (= (parse-ledger-entry
-             '("2016/03/22 ICA NARA KAR/16-03-21"
-                "Expenses:Groceries:ICA                SEK 314.32"
-                "Assets:Bank account"))
+            ["2016/03/22 ICA NARA KAR/16-03-21"
+             "Expenses:Groceries:ICA                SEK 314.32"
+             "Assets:Bank account"])
            {:date "2016/03/22"
-            :toks '("ICA" "NARA" "KAR" "YY-MM-DD")
-            :accs '("Expenses:Groceries:ICA" "Assets:Bank account")}))
+            :toks ["ICA" "NARA" "KAR" "YY-MM-DD"]
+            :accs ["Expenses:Groceries:ICA" "Assets:Bank account"]}))
     (is (= (parse-ledger-entry
-             '("2016/02/16 Lindra Second Hand, Kärrtorp | Baby stuff"
-                "Expenses:Clothing:Baby                 SEK 60.00"
-                "Assets:Bank account"))
+            ["2016/02/16 Lindra Second Hand, Kärrtorp | Baby stuff"
+             "Expenses:Clothing:Baby                 SEK 60.00"
+             "Assets:Bank account"])
            {:date "2016/02/16"
-            :toks '("LINDRA" "SECOND" "HAND" "KÄRRTORP")
-            :accs '("Expenses:Clothing:Baby" "Assets:Bank account")}))
+            :toks ["LINDRA" "SECOND" "HAND" "KÄRRTORP"]
+            :accs ["Expenses:Clothing:Baby" "Assets:Bank account"]}))
     (is (= (parse-ledger-entry
-             '("2018/01/22 (1234567890) CLAS OHLSON /18-01-19 | Verktyg & material"
-                "Expenses:Supplies                     SEK 358.60"
-                "Assets:Bank account"))
+            ["2018/01/22 (1234567890) CLAS OHLSON /18-01-19 | Verktyg & material"
+             "Expenses:Supplies                     SEK 358.60"
+             "Assets:Bank account"])
            {:date "2018/01/22"
-            :toks '("(1234567890)" "CLAS" "OHLSON" "YY-MM-DD")
-            :accs '("Expenses:Supplies" "Assets:Bank account")}))))
+            :toks ["(1234567890)" "CLAS" "OHLSON" "YY-MM-DD"]
+            :accs ["Expenses:Supplies" "Assets:Bank account"]}))))
 
 
 (deftest test-get-arg
@@ -202,9 +202,9 @@
 
 (deftest test-parse-args
   (testing "parse-args"
-    (is (= (:value (:csv-file (parse-args cl-args-spec '("-f" "abcde.csv"))))
+    (is (= (:value (:csv-file (parse-args cl-args-spec ["-f" "abcde.csv"])))
            "abcde.csv"))
-    (is (= (:value (:amount-col (parse-args cl-args-spec '("-m" "4"))))
+    (is (= (:value (:amount-col (parse-args cl-args-spec ["-m" "4"])))
            "4"))))
 
 
@@ -226,9 +226,17 @@
     (is (= (format-value 1234567.89) "1,234,567.89"))))
 
 
+(defn- locale
+  [language region]
+  (.build
+   (doto (Locale$Builder.)
+     (.setLanguage language)
+     (.setRegion region))))
+
+
 (deftest test-format-value-with-nonUS-locale
   (let [default-locale (Locale/getDefault)]
-    (Locale/setDefault (Locale. "sv" "SE"))
+    (Locale/setDefault (locale "sv" "SE"))
     (testing "format-value-with-nonUS-locale"
       (is (= (format-value 0.0) "0.00"))
       (is (= (format-value -10.237) "-10.24"))
@@ -247,7 +255,7 @@
 
 (deftest test-amount-value-with-nonUS-locale
   (let [default-locale (Locale/getDefault)]
-    (Locale/setDefault (Locale. "sv" "SE"))
+    (Locale/setDefault (locale "sv" "SE"))
     (testing "amount-value-with-nonUS-locale"
       (is (= (amount-value "0.00") 0.0))
       (is (= (amount-value "-10.24") -10.24))
@@ -348,8 +356,8 @@
 
 (deftest test-split-by-indices
   (testing "split-by-indices"
-    (is (= (split-by-indices "abc:def:gh:ij" '(3 7 10))
-           '("abc" "def" "gh" "ij")))))
+    (is (= (split-by-indices "abc:def:gh:ij" [3 7 10])
+           ["abc" "def" "gh" "ij"]))))
 
 
 (deftest test-format-colspec
@@ -384,27 +392,27 @@
   (testing "print-ledger-entry"
     (is (= (with-out-str
              (print-ledger-entry
-               {:date   "2018-07-21"
-                :descr  "Custom Shop Extra"
-                :verifs [{:comment "This is a comment"}
-                         {:account  "Expenses:Random"
-                          :amount   "123.45"
-                          :currency "SEK"}
-                         {:account "Assets:Pocket"}]}))
+              {:date   "2018-07-21"
+               :descr  "Custom Shop Extra"
+               :verifs [{:comment "This is a comment"}
+                        {:account  "Expenses:Random"
+                         :amount   "123.45"
+                         :currency "SEK"}
+                        {:account "Assets:Pocket"}]}))
            (str "2018-07-21 Custom Shop Extra" NL
                 "    ; This is a comment" NL
                 "    Expenses:Random                       SEK 123.45" NL
                 "    Assets:Pocket" NL NL)))
     (is (= (with-out-str
              (print-ledger-entry
-               {:date   "2018-07-21"
-                :ref    "1234567890"
-                :descr  "Custom Shop Extra"
-                :verifs [{:comment "This is a comment"}
-                         {:account  "Expenses:Random"
-                          :amount   "123.45"
-                          :currency "SEK"}
-                         {:account "Assets:Pocket"}]}))
+              {:date   "2018-07-21"
+               :ref    "1234567890"
+               :descr  "Custom Shop Extra"
+               :verifs [{:comment "This is a comment"}
+                        {:account  "Expenses:Random"
+                         :amount   "123.45"
+                         :currency "SEK"}
+                        {:account "Assets:Pocket"}]}))
            (str "2018-07-21 (1234567890) Custom Shop Extra" NL
                 "    ; This is a comment" NL
                 "    Expenses:Random                       SEK 123.45" NL
@@ -415,7 +423,7 @@
 ;; See also: https://tomszilagyi.github.io/2018/08/Custom-transactions-in-banks2ledger
 
 (defn round
-  [x]
+  [^Double x]
   (double (Math/round x)))
 
 
@@ -478,12 +486,12 @@
   (testing "print-ledger-entry-via-hook-formatters"
     (is (= (with-out-str
              (simple-salary-hook-formatter
-               {:date     "2017/07/25"
-                :descr    "LÖN"
-                :ref      "TXN123456789"
-                :account  "Assets:Bank:Account"
-                :amount   "29,290.00"
-                :currency "SEK"}))
+              {:date     "2017/07/25"
+               :descr    "LÖN"
+               :ref      "TXN123456789"
+               :account  "Assets:Bank:Account"
+               :amount   "29,290.00"
+               :currency "SEK"}))
            (str "2017/07/25 (TXN123456789) LÖN" NL
                 "    ; Pay stub data" NL
                 "    Tax:2017:GrossIncome                  SEK -00,000.00" NL
@@ -494,12 +502,12 @@
                 "    Income:Salary                         SEK -29,290.00" NL NL)))
     (is (= (with-out-str
              (advanced-salary-hook-formatter
-               {:date     "2018/07/25"
-                :descr    "LÖN"
-                :ref      "TXN123456789"
-                :account  "Assets:Bank:Account"
-                :amount   "27,365.00"
-                :currency "SEK"}))
+              {:date     "2018/07/25"
+               :descr    "LÖN"
+               :ref      "TXN123456789"
+               :account  "Assets:Bank:Account"
+               :amount   "27,365.00"
+               :currency "SEK"}))
            (str "2018/07/25 (TXN123456789) LÖN" NL
                 "    ; Pay stub data" NL
                 "    Tax:2018:GrossIncome                  SEK -38,500.00" NL
