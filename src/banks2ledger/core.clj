@@ -48,7 +48,7 @@
         (string/replace #"20\d{6}" "YYYYMMDD")
         (string/replace #"/\d{2}-\d{2}-\d{2}" "/YY-MM-DD")
         (string/split #",|/| "))
-    (filter #(> (count %) 0))))
+    (filter seq)))
 
 
 ;; N_occur is the occurrence count of token among all tokens
@@ -151,7 +151,8 @@
 ;; Predicate for full comment lines in the ledger file
 (defn is-comment-line
   [line]
-  (some #(string/starts-with? line %) '(";" "#" "|" "*" "%")))
+  (some #(string/starts-with? line %)
+        '(";" "#" "|" "*" "%")))
 
 
 ;; Split ledger entry string to a sequence of separate lines
@@ -161,7 +162,7 @@
        (remove is-comment-line)
        (map (partial clip-string ";"))
        (map string/trim)
-       (filter #(> (count %) 0))))
+       (filter seq)))
 
 
 ;; Parse a ledger entry from string to acc-map
@@ -251,11 +252,11 @@
      :help "Text (descriptor) column index specs (zero-based)"}
 
     :amount-decimal-separator
-    {:opt  "-ds" :value "." :conv-fun #(first %)
+    {:opt "-ds" :value "." :conv-fun first
      :help "Decimal sign character"}
 
     :amount-grouping-separator
-    {:opt  "-gs" :value "," :conv-fun #(first %)
+    {:opt "-gs" :value "," :conv-fun first
      :help "Decimal group (thousands) separator character"}
 
     :hooks-file
@@ -298,7 +299,11 @@
 (defn find-first
   "Finds the first item in a collection that matches a predicate."
   [pred coll]
-  (reduce (fn [_ x] (when (pred x) (reduced x))) nil coll))
+  (reduce (fn [_ x]
+            (when (pred x)
+              (reduced x)))
+          nil
+          coll))
 
 
 (defn set-arg
@@ -385,11 +390,12 @@
   [str]
   (let [len  (count str)
         last (dec len)]
-    (cond (< len 3) str
-          (or (and (string/starts-with? str "'") (string/ends-with? str "'"))
-              (and (string/starts-with? str "\"") (string/ends-with? str "\"")))
-          (subs str 1 last)
-          :else str)))
+    (cond
+      (< len 3) str
+      (or (and (string/starts-with? str "'") (string/ends-with? str "'"))
+          (and (string/starts-with? str "\"") (string/ends-with? str "\"")))
+      (subs str 1 last)
+      :else str)))
 
 
 (defn all-indices-1
@@ -565,6 +571,7 @@
         acc-maps (parse-ledger (get-arg params :ledger-file))]
     (reset! +debug+ (get-arg params :debug))
     (when +debug+
+      ;; todo: with-open?
       (let [acc-maps-dump-file (io/writer "acc_maps_dump.txt")]
         (binding [*out* acc-maps-dump-file]
           (print-acc-maps acc-maps))
