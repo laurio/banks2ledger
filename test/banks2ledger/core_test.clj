@@ -51,11 +51,11 @@
   (testing "toktab-update"
     (is (= (toktab-update {} {:accs ["Acc1" "Acc2"] :toks ["tok1" "tok2"]})
            {"Acc1" {"tok1" 1, "tok2" 1}, "Acc2" {"tok1" 1, "tok2" 1}}))
-    (is (= (toktab-update {"Acc1" {"tok1" 1, "tok2" 1},
+    (is (= (toktab-update {"Acc1" {"tok1" 1, "tok2" 1}
                            "Acc2" {"tok1" 1, "tok2" 1}}
                           {:accs ["Acc1" "Acc3"] :toks ["tok1" "tok3"]})
-           {"Acc1" {"tok1" 2, "tok2" 1, "tok3" 1},
-            "Acc2" {"tok1" 1, "tok2" 1},
+           {"Acc1" {"tok1" 2, "tok2" 1, "tok3" 1}
+            "Acc2" {"tok1" 1, "tok2" 1}
             "Acc3" {"tok1" 1, "tok3" 1}}))))
 
 
@@ -88,23 +88,23 @@
 
 (deftest test-p_belong
   (testing "p_belong"
-    (is (= (p_belong {"Acc1" {"tok1" 2, "tok2" 1},
+    (is (= (p_belong {"Acc1" {"tok1" 2, "tok2" 1}
                       "Acc2" {"tok1" 2, "tok2" 1}} "tok1" "Acc1")
            (float 1/2)))
-    (is (f= (p_belong {"Acc1" {"tok1" 1, "tok2" 2},
+    (is (f= (p_belong {"Acc1" {"tok1" 1, "tok2" 2}
                        "Acc2" {"tok1" 1, "tok2" 5}} "tok1" "Acc1")
             0.5))
-    (is (f= (p_belong {"Acc1" {"tok1" 1, "tok2" 2},
-                       "Acc2" {"tok1" 2, "tok2" 5},
+    (is (f= (p_belong {"Acc1" {"tok1" 1, "tok2" 2}
+                       "Acc2" {"tok1" 2, "tok2" 5}
                        "Acc3" {"tok1" 1, "tok2" 8}} "tok1" "Acc1")
             0.25))))
 
 
 (deftest test-best-accounts
   (testing "best-accounts"
-    (is (f= (best-accounts {"Acc1" {"tok1" 1, "tok2" 2},
-                            "Acc2" {"tok1" 2, "tok2" 8},
-                            "Acc3" {"tok2" 8},
+    (is (f= (best-accounts {"Acc1" {"tok1" 1, "tok2" 2}
+                            "Acc2" {"tok1" 2, "tok2" 8}
+                            "Acc3" {"tok2" 8}
                             "Acc4" {"tok1" 5, "tok2" 5}} "tok1")
             '([0.625 "Acc4"]
               [0.25 "Acc2"]
@@ -175,22 +175,22 @@
              '("2016/03/22 ICA NARA KAR/16-03-21"
                 "Expenses:Groceries:ICA                SEK 314.32"
                 "Assets:Bank account"))
-           {:date "2016/03/22",
-            :toks '("ICA" "NARA" "KAR" "YY-MM-DD"),
+           {:date "2016/03/22"
+            :toks '("ICA" "NARA" "KAR" "YY-MM-DD")
             :accs '("Expenses:Groceries:ICA" "Assets:Bank account")}))
     (is (= (parse-ledger-entry
              '("2016/02/16 Lindra Second Hand, Kärrtorp | Baby stuff"
                 "Expenses:Clothing:Baby                 SEK 60.00"
                 "Assets:Bank account"))
-           {:date "2016/02/16",
-            :toks '("LINDRA" "SECOND" "HAND" "KÄRRTORP"),
+           {:date "2016/02/16"
+            :toks '("LINDRA" "SECOND" "HAND" "KÄRRTORP")
             :accs '("Expenses:Clothing:Baby" "Assets:Bank account")}))
     (is (= (parse-ledger-entry
              '("2018/01/22 (1234567890) CLAS OHLSON /18-01-19 | Verktyg & material"
                 "Expenses:Supplies                     SEK 358.60"
                 "Assets:Bank account"))
-           {:date "2018/01/22",
-            :toks '("(1234567890)" "CLAS" "OHLSON" "YY-MM-DD"),
+           {:date "2018/01/22"
+            :toks '("(1234567890)" "CLAS" "OHLSON" "YY-MM-DD")
             :accs '("Expenses:Supplies" "Assets:Bank account")}))))
 
 

@@ -42,13 +42,12 @@
 ;; - Split at '/' ',' and space
 (defn tokenize
   [str]
-  (->>
-    (-> str
-        string/upper-case
-        (string/replace #"20\d{6}" "YYYYMMDD")
-        (string/replace #"/\d{2}-\d{2}-\d{2}" "/YY-MM-DD")
-        (string/split #",|/| "))
-    (filter seq)))
+  (filter seq
+          (-> str
+              string/upper-case
+              (string/replace #"20\d{6}" "YYYYMMDD")
+              (string/replace #"/\d{2}-\d{2}-\d{2}" "/YY-MM-DD")
+              (string/split #",|/| "))))
 
 
 ;; N_occur is the occurrence count of token among all tokens
@@ -101,7 +100,8 @@
 ;; Print a table of combined probs for given tokens
 (defn p_table
   [acc-maps tokens]
-  (let [nz-toks (filter #(> (count (best-accounts acc-maps %)) 0) tokens)]
+  (let [nz-toks (filter #(pos? (count (best-accounts acc-maps %)))
+                        tokens)]
     (->> (keys acc-maps)
          (map (fn [acc] [(p_belong* acc-maps nz-toks acc) acc]))
          (filter #(> (first %) 0.0))
