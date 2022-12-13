@@ -37,16 +37,17 @@
 
 ;; Create tokens from string
 ;; One string may become one or more tokens, returned as a seq
-;; - Convert to uppercase
 ;; - replace dates with degraded forms
+;; - Convert to uppercase
 ;; - Split at '/' ',' and space
 (defn tokenize
-  [str]
+  [s]
   (filter seq
-          (-> str
+          (-> (reduce-kv string/replace
+                         s
+                         {#"20\d{6}"            "YYYYMMDD"
+                          #"/\d{2}-\d{2}-\d{2}" "/YY-MM-DD"})
               string/upper-case
-              (string/replace #"20\d{6}" "YYYYMMDD")
-              (string/replace #"/\d{2}-\d{2}-\d{2}" "/YY-MM-DD")
               (string/split #",|/| "))))
 
 
@@ -391,8 +392,8 @@
     (cond
       (< len 3) s
 
-      (or (and (string/starts-with? s "'") (string/ends-with? s "'"))
-          (and (string/starts-with? s "\"") (string/ends-with? s "\"")))
+      (or (and (= \' (first s)) (= \' (last s)))
+          (and (= \" (first s)) (= \" (last s))))
       (subs s 1 (dec len))
 
       :else s)))
