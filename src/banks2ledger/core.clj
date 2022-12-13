@@ -132,9 +132,10 @@
 (defn decide-account
   [acc-maps descr account]
   (let [accs (account-for-descr acc-maps descr account)]
-    (cond (empty? accs) "Unknown"
-          (= (ffirst accs) (first (second accs))) "Unknown"
-          :else (second (first accs)))))
+    (cond
+      (empty? accs) "Unknown"
+      (= (ffirst accs) (first (second accs))) "Unknown"
+      :else (second (first accs)))))
 
 
 ;; Science up to this point. From here, only machinery.
@@ -181,7 +182,7 @@
   [filename]
   (->> (string/split (slurp filename) #"\r?\n\r?\n")
        (map string/trim)                                    ; remove odd newlines
-       (filter #(> (count %) 0))
+       (filter seq)
        (map split-ledger-entry)
        (filter #(> (count %) 1))
        (map parse-ledger-entry)
@@ -252,11 +253,11 @@
      :help "Text (descriptor) column index specs (zero-based)"}
 
     :amount-decimal-separator
-    {:opt "-ds" :value "." :conv-fun first
+    {:opt  "-ds" :value "." :conv-fun first
      :help "Decimal sign character"}
 
     :amount-grouping-separator
-    {:opt "-gs" :value "," :conv-fun first
+    {:opt  "-gs" :value "," :conv-fun first
      :help "Decimal group (thousands) separator character"}
 
     :hooks-file
