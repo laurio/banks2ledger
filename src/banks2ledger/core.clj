@@ -429,7 +429,7 @@
   [cols colspec]
   (-> colspec
       (string/replace #"\%(\d*)"
-                      #(unquote-string (nth cols (Integer. (second %1)))))
+                      #(unquote-string (nth cols (parse-long (second %)))))
       string/trim))
 
 
@@ -479,11 +479,11 @@
 ;; Parse input CSV into a list of maps
 (defn parse-csv
   [reader params]
-  (mapv (partial parse-csv-entry params)
-        (drop-lines (csv/parse-csv reader
-                                   :delimiter
-                                   (first (get-arg params :csv-field-separator)))
-                    params)))
+  (->> params
+       (drop-lines (csv/parse-csv reader
+                                  :delimiter
+                                  (first (get-arg params :csv-field-separator))))
+       (map (partial parse-csv-entry params))))
 
 
 ;; print a ledger entry to *out*
@@ -491,7 +491,7 @@
 ;; each of them will produce a line of output. Each line is
 ;; either a comment or an entry containing an account and
 ;; optionally an amount and currency.
-(defn print-ledger-entry
+(defn print-ledger-entry!
   [entry]
   (let [ref    (:ref entry)
         verifs (:verifs entry)]
@@ -539,12 +539,12 @@
   (swap! +ledger-entry-hooks+ #(conj % hook)))
 
 
-(defn process-hooks
+(defn process-hooks!
   [entry]
   (loop [hooks @+ledger-entry-hooks+]
     (let [{:keys [formatter predicate] :as hook} (first hooks)]
       (if (nil? hook)
-        (print-ledger-entry (add-default-verifications entry))
+        (print-ledger-entry! (add-default-verifications entry))
         (if (predicate entry)
           (when formatter
             (formatter entry))
@@ -552,7 +552,7 @@
 
 
 ;; generate a ledger entry -- invoke user-defined hooks
-(defn generate-ledger-entry
+(defn generate-ledger-entry!
   [params acc-maps
    {:keys [date ref amount descr]}]
   (let [account     (get-arg params :account)
@@ -560,7 +560,7 @@
         currency    (get-arg params :currency)
         entry       {:date    date :ref ref :amount amount :currency currency
                      :account account :counter-acc counter-acc :descr descr}]
-    (process-hooks entry)))
+    (process-hooks! entry)))
 
 
 ;; Convert CSV of bank account transactions to corresponding ledger entries
@@ -575,9 +575,8 @@
           (print-acc-maps acc-maps))))
     (some-> (get-arg params :hooks-file)
             load-file)
-    (with-open [reader (io/reader
-                         (get-arg params :csv-file)
-                         :encoding (get-arg params :csv-file-encoding))]
-      (let [lines (parse-csv reader params)]
-        (mapv (partial generate-ledger-entry params acc-maps) lines))
+    (with-open [reader (io/reader (get-arg params :csv-file)
+                                  :encoding (get-arg params :csv-file-encoding))]
+      (run! (partial generate-ledger-entry! params acc-maps)
+            (parse-csv reader params))
       (flush))))

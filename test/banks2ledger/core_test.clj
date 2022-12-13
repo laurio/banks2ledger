@@ -4,7 +4,7 @@
                                cl-args-spec clip-string convert-amount
                                convert-date format-colspec format-value
                                get-arg get-col n_occur p_belong parse-args
-                               parse-ledger-entry print-ledger-entry
+                               parse-ledger-entry print-ledger-entry!
                                split-by-indices split-ledger-entry tokenize
                                toktab-inc toktab-update unquote-string]]
     [clojure.test :refer [deftest is testing]])
@@ -392,7 +392,7 @@
 (deftest test-print-ledger-entry
   (testing "print-ledger-entry"
     (is (= (with-out-str
-             (print-ledger-entry
+             (print-ledger-entry!
                {:date   "2018-07-21"
                 :descr  "Custom Shop Extra"
                 :verifs [{:comment "This is a comment"}
@@ -405,7 +405,7 @@
                 "    Expenses:Random                       SEK 123.45" NL
                 "    Assets:Pocket" NL NL)))
     (is (= (with-out-str
-             (print-ledger-entry
+             (print-ledger-entry!
                {:date   "2018-07-21"
                 :ref    "1234567890"
                 :descr  "Custom Shop Extra"
@@ -448,7 +448,7 @@
                   {:account  "Income:Salary"
                    :amount   (str "-" amount)
                    :currency currency}]]
-    (print-ledger-entry (conj entry [:verifs verifs]))))
+    (print-ledger-entry! (conj entry [:verifs verifs]))))
 
 
 (defn advanced-salary-hook-formatter
@@ -478,7 +478,7 @@
                       {:account  (:account entry)
                        :amount   (:amount entry)
                        :currency currency}]]
-    (print-ledger-entry (conj entry [:verifs verifs]))))
+    (print-ledger-entry! (conj entry [:verifs verifs]))))
 
 
 ;; Verify the hook formatters defined above

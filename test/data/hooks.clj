@@ -28,7 +28,7 @@
                 {:account  (:account entry)
                  :amount   (:amount entry)
                  :currency (:currency entry)}]]
-    (print-ledger-entry (conj entry [:verifs verifs]))))
+    (print-ledger-entry! (conj entry [:verifs verifs]))))
 
 
 ;; Define a hook to customize salary income transactions
