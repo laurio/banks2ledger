@@ -153,7 +153,7 @@
 (defn is-comment-line
   [line]
   (some #(string/starts-with? line %)
-        '(";" "#" "|" "*" "%")))
+        [";" "#" "|" "*" "%"]))
 
 
 ;; Split ledger entry string to a sequence of separate lines
@@ -387,15 +387,16 @@
 
 ;; Remove quotes from start & end of the string, if both present
 (defn unquote-string
-  [str]
-  (let [len  (count str)
-        last (dec len)]
+  [s]
+  (let [len (count s)]
     (cond
-      (< len 3) str
-      (or (and (string/starts-with? str "'") (string/ends-with? str "'"))
-          (and (string/starts-with? str "\"") (string/ends-with? str "\"")))
-      (subs str 1 last)
-      :else str)))
+      (< len 3) s
+
+      (or (and (string/starts-with? s "'") (string/ends-with? s "'"))
+          (and (string/starts-with? s "\"") (string/ends-with? s "\"")))
+      (subs s 1 (dec len))
+
+      :else s)))
 
 
 (defn all-indices-1
