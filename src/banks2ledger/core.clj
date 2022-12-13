@@ -92,20 +92,20 @@
 ;; only accounts with nonzero probs are returned
 (defn best-accounts
   [acc-maps token]
-  (sort-by first >
-           (filter #(> (first %) 0.0)
-                   (map (fn [acc] [(p_belong acc-maps token acc) acc])
-                        (keys acc-maps)))))
+  (->> (keys acc-maps)
+       (map (fn [acc] [(p_belong acc-maps token acc) acc]))
+       (filter #(> (first %) 0.0))
+       (sort-by first >)))
 
 
 ;; Print a table of combined probs for given tokens
 (defn p_table
   [acc-maps tokens]
   (let [nz-toks (filter #(> (count (best-accounts acc-maps %)) 0) tokens)]
-    (sort-by first >
-             (filter #(> (first %) 0.0)
-                     (map (fn [acc] [(p_belong* acc-maps nz-toks acc) acc])
-                          (keys acc-maps))))))
+    (->> (keys acc-maps)
+         (map (fn [acc] [(p_belong* acc-maps nz-toks acc) acc]))
+         (filter #(> (first %) 0.0))
+         (sort-by first >))))
 
 
 ;; Return the most probable counter-accounts for given descr captured for
@@ -144,9 +144,8 @@
 (defn clip-string
   [endmark string]
   (let [end-idx (.indexOf string endmark)]
-    (if (= end-idx -1)
-      string
-      (subs string 0 end-idx))))
+    (cond-> string
+      (not= -1 end-idx) (subs 0 end-idx))))
 
 
 ;; Predicate for full comment lines in the ledger file
@@ -159,7 +158,7 @@
 (defn split-ledger-entry
   [entry]
   (->> (string/split entry #"\r?\n")
-       (filter (complement is-comment-line))
+       (remove is-comment-line)
        (map (partial clip-string ";"))
        (map string/trim)
        (filter #(> (count %) 0))))
@@ -292,15 +291,20 @@
   (let [arg-spec  (key args-spec)
         conv-fun  (:conv-fun arg-spec)
         raw-value (:value arg-spec)]
-    (if (nil? conv-fun)
-      raw-value
-      (conv-fun raw-value))))
+    (cond-> raw-value
+      (some? conv-fun) conv-fun)))
+
+
+(defn find-first
+  "Finds the first item in a collection that matches a predicate."
+  [pred coll]
+  (reduce (fn [_ x] (when (pred x) (reduced x))) nil coll))
 
 
 (defn set-arg
   [args-spec arg value]
-  (let [key  (first (filter #(= arg (:opt (% args-spec)))
-                            (keys args-spec)))
+  (let [key  (find-first #(= arg (:opt (% args-spec)))
+                         (keys args-spec))
         val0 (key args-spec)
         val  (conj val0 [:value value])]
     (conj args-spec [key val])))
@@ -311,21 +315,20 @@
 
 (defn parse-arg
   [args-spec arg rest-args]
-  (if (some #{arg} (optvec cl-args-spec))
+  (if (not-any? #{arg} (optvec cl-args-spec))
+    (print-usage-and-die (str "Invalid argument: " arg))
     (let [value (first rest-args)
           rest  (rest rest-args)]
       (if (nil? value)
         (print-usage-and-die (str "Value expected for option " arg))
-        (parse-args (set-arg args-spec arg value) rest)))
-    (print-usage-and-die (str "Invalid argument: " arg))))
+        (parse-args (set-arg args-spec arg value) rest)))))
 
 
 ;; Go through the args list and return an updated args-spec
 (defn parse-args
   [args-spec args]
-  (if (empty? args)
-    args-spec
-    (parse-arg args-spec (first args) (rest args))))
+  (cond-> args-spec
+    (seq args) (parse-arg (first args) (rest args))))
 
 
 ;; Convert date field from CSV format to Ledger entry format
@@ -392,7 +395,7 @@
 (defn all-indices-1
   [str sub pos acc]
   (let [idx (.indexOf str sub pos)]
-    (if (= idx -1)
+    (if (= -1 idx)
       acc
       (all-indices-1 str sub (inc idx) (conj acc idx)))))
 
@@ -427,7 +430,7 @@
 (defn get-col-1
   [cols [spec & spec-list]]
   (let [fmt (format-colspec cols spec)]
-    (if (or (> (count fmt) 0)
+    (if (or (seq fmt)
             (empty? spec-list))
       fmt
       (get-col-1 cols spec-list))))
@@ -453,7 +456,8 @@
   [params cols]
   (let [ref-col (get-arg params :ref-col)]
     {:date   (convert-date params (nth cols (get-arg params :date-col)))
-     :ref    (if (< ref-col 0) nil (unquote-string (nth cols ref-col)))
+     :ref    (when (nat-int? ref-col)
+               (unquote-string (nth cols ref-col)))
      :amount (convert-amount params (nth cols (get-arg params :amount-col)))
      :descr  (unquote-string (get-col cols (get-arg params :descr-col)))}))
 
@@ -469,11 +473,11 @@
 ;; Parse input CSV into a list of maps
 (defn parse-csv
   [reader params]
-  (->>
-    (-> (csv/parse-csv reader
-                       :delimiter (.charAt (get-arg params :csv-field-separator) 0))
-        (drop-lines params))
-    (mapv (partial parse-csv-entry params))))
+  (mapv (partial parse-csv-entry params)
+        (drop-lines (csv/parse-csv reader
+                                   :delimiter
+                                   (first (get-arg params :csv-field-separator)))
+                    params)))
 
 
 ;; print a ledger entry to *out*
@@ -493,11 +497,11 @@
       (let [comment (:comment verif)
             account (:account verif)
             amount  (:amount verif)]
-        (if (nil? comment)
+        (if (some? comment)
+          (printf "    ; %s%n" comment)
           (if (nil? amount)
             (printf "    %s%n" account)
-            (printf "    %-38s%s %s%n" account (:currency verif) amount))
-          (printf "    ; %s%n" comment))))
+            (printf "    %-38s%s %s%n" account (:currency verif) amount)))))
     (println)))
 
 
@@ -508,15 +512,16 @@
         currency    (:currency entry)
         account     (:account entry)
         counter-acc (:counter-acc entry)]
-    (if (= \- (first amount))
-      (conj entry [:verifs [{:account  counter-acc
-                             :amount   (subs amount 1)
-                             :currency currency}
-                            {:account account}]])
-      (conj entry [:verifs [{:account  account
-                             :amount   amount
-                             :currency currency}
-                            {:account counter-acc}]]))))
+    (conj entry
+          [:verifs (case (first amount)
+                     \- [{:account  counter-acc
+                          :amount   (subs amount 1)
+                          :currency currency}
+                         {:account account}]
+                     [{:account  account
+                       :amount   amount
+                       :currency currency}
+                      {:account counter-acc}])])))
 
 
 ;; hooks allow the user to generate custom output for certain entries
