@@ -1,6 +1,6 @@
 (ns banks2ledger.core-test
   (:require
-    [banks2ledger.core :refer [all-indices amount-value best-accounts
+    [banks2ledger.core :refer [all-indices best-accounts
                                cl-args-spec clip-string convert-amount
                                convert-date format-colspec format-value
                                get-arg get-col n_occur p_belong parse-args
@@ -9,6 +9,9 @@
                                toktab-inc toktab-update unquote-string]]
     [clojure.test :refer [deftest is testing]])
   (:import
+    (java.text
+      DecimalFormat
+      DecimalFormatSymbols)
     (java.util
       Locale
       Locale$Builder)))
@@ -246,25 +249,6 @@
     (Locale/setDefault default-locale)))
 
 
-(deftest test-amount-value
-  (testing "amount-value"
-    (is (= (amount-value "0.00") 0.0))
-    (is (= (amount-value "-10.24") -10.24))
-    (is (= (amount-value "1,234.56") 1234.56))
-    (is (= (amount-value "1,234,567.89") 1234567.89))))
-
-
-(deftest test-amount-value-with-nonUS-locale
-  (let [default-locale (Locale/getDefault)]
-    (Locale/setDefault (locale "sv" "SE"))
-    (testing "amount-value-with-nonUS-locale"
-      (is (= (amount-value "0.00") 0.0))
-      (is (= (amount-value "-10.24") -10.24))
-      (is (= (amount-value "1,234.56") 1234.56))
-      (is (= (amount-value "1,234,567.89") 1234567.89)))
-    (Locale/setDefault default-locale)))
-
-
 (deftest test-convert-amount
   (testing "convert-amount"
     (is (= (convert-amount {:amount-decimal-separator  {:value \,}
@@ -449,6 +433,18 @@
                    :amount   (str "-" amount)
                    :currency currency}]]
     (print-ledger-entry! (conj entry [:verifs verifs]))))
+
+
+;; Return the value of a canonically formatted amount string,
+;; e.g., returned by convert-amount
+(defn- amount-value
+  [amount]
+  (let [pattern "#,#.#"                                     ; see java DecimalFormat
+        dfs     (doto (DecimalFormatSymbols. Locale/US))
+        df      (DecimalFormat. pattern dfs)]
+    (->> amount
+         (.parse df)
+         double)))
 
 
 (defn advanced-salary-hook-formatter

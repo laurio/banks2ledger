@@ -7,8 +7,6 @@
     [clojure.string :as string])
   (:import
     (java.text
-      DecimalFormat
-      DecimalFormatSymbols
       SimpleDateFormat)
     (java.util
       Locale)))
@@ -353,6 +351,13 @@
     (string/replace-first (str " " s) up-to-a-digit-re "")))
 
 
+(defn remove-trailing-garbage
+  [s]
+  (->> s
+       (re-matches #"([-+]?[0-9]*\.?[0-9]+).*")
+       last))
+
+
 ;; Convert a double value to a canonically formatted amount
 (defn format-value
   [value]
@@ -362,28 +367,13 @@
 ;; Convert CSV amount string - note the return value is still a string!
 (defn convert-amount
   [args-spec string]
-  (let [pattern "#,#.#"                                     ; see java DecimalFormat
-        dfs     (doto (DecimalFormatSymbols.)
-                  (.setDecimalSeparator (get-arg args-spec :amount-decimal-separator))
-                  (.setGroupingSeparator (get-arg args-spec :amount-grouping-separator)))
-        df      (DecimalFormat. pattern dfs)]
-    (->> string
-         remove-leading-garbage
-         (.parse df)
-         double
-         format-value)))
-
-
-;; Return the value of a canonically formatted amount string,
-;; e.g., returned by convert-amount
-(defn amount-value
-  [amount]
-  (let [pattern "#,#.#"                                     ; see java DecimalFormat
-        dfs     (doto (DecimalFormatSymbols. Locale/US))
-        df      (DecimalFormat. pattern dfs)]
-    (->> amount
-         (.parse df)
-         double)))
+  (-> string
+      remove-leading-garbage
+      (string/replace (str (get-arg args-spec :amount-grouping-separator)) "")
+      (string/replace (str (get-arg args-spec :amount-decimal-separator)) ".")
+      remove-trailing-garbage
+      parse-double
+      format-value))
 
 
 ;; Remove quotes from start & end of the string, if both present
@@ -582,3 +572,7 @@
       (run! (partial generate-ledger-entry! params acc-maps)
             (parse-csv reader params))
       (flush))))
+
+
+(when (= *file* (System/getProperty "babashka.file"))
+  (-main))
