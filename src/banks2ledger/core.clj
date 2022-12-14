@@ -1,7 +1,8 @@
+#!/usr/bin/env bb
 (ns banks2ledger.core
   (:gen-class)
   (:require
-    [clojure-csv.core :as csv]
+    [clojure.data.csv :as csv]
     [clojure.java.io :as io]
     [clojure.string :as string])
   (:import
@@ -481,9 +482,9 @@
 (defn parse-csv
   [reader params]
   (->> params
-       (drop-lines (csv/parse-csv reader
-                                  :delimiter
-                                  (first (get-arg params :csv-field-separator))))
+       (drop-lines (csv/read-csv reader
+                                 :separator
+                                 (first (get-arg params :csv-field-separator))))
        (map (partial parse-csv-entry params))))
 
 

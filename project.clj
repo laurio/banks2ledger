@@ -4,7 +4,7 @@
   :license {:name "Eclipse Public License"
             :url  "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.11.1"]
-                 [clojure-csv/clojure-csv "2.0.2"]]
+                 [org.clojure/data.csv "1.0.1"]]
   :main ^:skip-aot banks2ledger.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})
