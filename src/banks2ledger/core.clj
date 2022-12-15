@@ -20,8 +20,8 @@
 ;; Bump account's token counter for token
 (defn toktab-inc
   [toktab [account token]]
-  (let [acctab0 (or (get toktab account) {})
-        cnt     (or (get acctab0 token) 0)
+  (let [acctab0 (get toktab account {})
+        cnt     (get acctab0 token 0)
         acctab  (conj acctab0 [token (inc cnt)])]
     (conj toktab [account acctab])))
 
@@ -56,7 +56,7 @@
 (defn n_occur
   [acc-maps token account]
   (let [acc-table (get acc-maps account)]
-    (or (get acc-table token) 0)))
+    (get acc-table token 0)))
 
 
 ;; P_belong is the probability that a transaction with
