@@ -150,16 +150,17 @@
 
 
 ;; Predicate for full comment lines in the ledger file
-(defn is-comment-line
+(defn comment-line?
   [line]
-  (#{\; \# \| \* \%} (first line)))
+  (contains? #{\; \# \| \* \%}
+             (first line)))
 
 
 ;; Split ledger entry string to a sequence of separate lines
 (defn split-ledger-entry
   [entry]
   (->> (string/split entry #"\r?\n")
-       (remove is-comment-line)
+       (remove comment-line?)
        (map (partial clip-string ";"))
        (map string/trim)
        (filter seq)))
