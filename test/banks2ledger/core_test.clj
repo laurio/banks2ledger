@@ -7,11 +7,9 @@
                                parse-ledger-entry print-ledger-entry!
                                split-by-indices split-ledger-entry tokenize
                                toktab-inc toktab-update unquote-string]]
+    [clojure.string :as string]
     [clojure.test :refer [deftest is testing]])
   (:import
-    (java.text
-      DecimalFormat
-      DecimalFormatSymbols)
     (java.util
       Locale
       Locale$Builder)))
@@ -435,23 +433,13 @@
     (print-ledger-entry! (conj entry [:verifs verifs]))))
 
 
-;; Return the value of a canonically formatted amount string,
-;; e.g., returned by convert-amount
-(defn- amount-value
-  [amount]
-  (let [pattern "#,#.#"                                     ; see java DecimalFormat
-        dfs     (doto (DecimalFormatSymbols. Locale/US))
-        df      (DecimalFormat. pattern dfs)]
-    (->> amount
-         (.parse df)
-         double)))
-
-
 (defn advanced-salary-hook-formatter
   [entry]
   (let [gross-salary 38500.0
         spp-contrib  (round (* 0.05 gross-salary))
-        recv-amount  (amount-value (:amount entry))
+        recv-amount  (-> (:amount entry)
+                         (string/replace "," "")
+                         parse-double)
         net-salary   (+ recv-amount spp-contrib)
         income-tax   (- gross-salary net-salary)
         currency     (:currency entry)

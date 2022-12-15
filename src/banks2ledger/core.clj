@@ -366,8 +366,8 @@
 
 ;; Convert CSV amount string - note the return value is still a string!
 (defn convert-amount
-  [args-spec string]
-  (-> string
+  [args-spec s]
+  (-> s
       remove-leading-garbage
       (string/replace (str (get-arg args-spec :amount-grouping-separator)) "")
       (string/replace (str (get-arg args-spec :amount-decimal-separator)) ".")
