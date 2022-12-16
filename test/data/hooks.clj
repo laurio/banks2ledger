@@ -1,4 +1,4 @@
-(ns banks2ledger.core)
+(ns banks2ledger.banks2ledger)
 
 
 ;; Define a helper function to define hooks for income transactions,

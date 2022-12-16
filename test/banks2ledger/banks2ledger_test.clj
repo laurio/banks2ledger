@@ -1,6 +1,6 @@
-(ns banks2ledger.core-test
+(ns banks2ledger.banks2ledger-test
   (:require
-    [banks2ledger.core :refer [all-indices best-accounts
+    [banks2ledger.banks2ledger :refer [all-indices best-accounts
                                clip-string convert-amount
                                convert-date format-colspec format-value
                                get-col n_occur p_belong

@@ -1,5 +1,5 @@
 #!/usr/bin/env bb
-(ns banks2ledger.core
+(ns banks2ledger.banks2ledger
   (:gen-class)
   (:require
     [clojure.data.csv :as csv]
