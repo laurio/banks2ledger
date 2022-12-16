@@ -201,14 +201,19 @@
     (println)))
 
 
+(defn filepath-exists?
+  [filepath]
+  (.exists (io/file filepath)))
+
+
 ;; command line args spec
 (def cli-options
-  [["-l" "--ledger-file FILE" "Ledger file to get accounts and probabilities"
+  [["-l" "--ledger-file LEDGER-FILE" "Ledger file to get accounts and probabilities"
     :default "ledger.dat"
-    :validate [#(.exists (io/file %)) "The specified ledger file doesn't exist"]]
-   ["-f" "--csv-file FILE" "Input transactions in CSV format"
+    :validate [filepath-exists? "The specified ledger file doesn't exist"]]
+   ["-f" "--csv-file CSV-FILE" "Input transactions in CSV format"
     :default "transactions.csv"
-    :validate [#(.exists (io/file %)) "The specified transactions csv file doesn't exist"]]
+    :validate [filepath-exists? "The specified transactions csv file doesn't exist"]]
    ["-e" "--csv-file-encoding ENCODING" "Encoding of the CSV file"
     :default "UTF-8"
     :validate [(complement string/blank?) "Invalid CSV file encoding"]]
@@ -216,8 +221,9 @@
     :default "Assets:Checking"
     :validate [(complement string/blank?) "Invalid originating account of transactions"]]
    ["-j" "--csv-field-separator SEPARATOR" "CSV field separator"
-    :default ","
-    :validate [(complement string/blank?) "Invalid CSV field separator"]]
+    :default \,
+    :parse-fn first
+    :validate [some? "Invalid CSV field separator"]]
    ["-b" "--csv-skip-header-lines INTEGER" "CSV header lines to skip"
     :default 0
     :parse-fn parse-long
@@ -257,7 +263,7 @@
     :validate [some? "Must be specified"]]
    ["-k" "--hooks-file FILE" "Hooks file defining customized output entries"
     :default nil
-    :validate [#(.exists (io/file %)) "The specified hooks hooks file doesn't exist"]]
+    :validate [filepath-exists? "The specified hooks hooks file doesn't exist"]]
    ["-i" "--debug DEBUG" "Include debug information in the generated output"
     :default false
     :parse-fn #{"true" "false"}]
@@ -293,9 +299,14 @@
     (cond
       (:help options)                                       ; help => exit OK with usage summary
       {:exit-message (usage summary) :ok? true}
+
       errors                                                ; errors => exit with description of errors
       {:exit-message (error-msg errors)}
-      :else                                                 ; failed custom validation => exit with usage summary
+
+      (not (filepath-exists? (:ledger-file options)))
+      {:exit-message (error-msg [(str "Ledger file '" (:ledger-file options) "' not found")])}
+
+      :else
       {:options options})))
 
 
@@ -440,11 +451,10 @@
 
 ;; Parse input CSV into a list of maps
 (defn parse-csv
-  [reader options]
+  [reader {:keys [csv-field-separator] :as options}]
   (->> options
        (drop-lines (csv/read-csv reader
-                                 :separator
-                                 (first (:csv-field-separator options))))
+                                 :separator csv-field-separator))
        (map (partial parse-csv-entry options))))
 
 
