@@ -11,8 +11,7 @@
     [clojure.test :refer [deftest is testing]])
   (:import
     (java.util
-      Locale
-      Locale$Builder)))
+      Locale)))
 
 
 ;; Compare a and b for "equal enough" (used for testing float results)
@@ -214,17 +213,9 @@
     (is (= (format-value 1234567.89) "1,234,567.89"))))
 
 
-(defn- locale
-  [language region]
-  (.build
-    (doto (Locale$Builder.)
-      (.setLanguage language)
-      (.setRegion region))))
-
-
 (deftest test-format-value-with-nonUS-locale
   (let [default-locale (Locale/getDefault)]
-    (Locale/setDefault (locale "sv" "SE"))
+    (Locale/setDefault (Locale. "sv" "SE"))
     (testing "format-value-with-nonUS-locale"
       (is (= (format-value 0.0) "0.00"))
       (is (= (format-value -10.237) "-10.24"))

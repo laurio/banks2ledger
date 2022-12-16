@@ -1,6 +1,6 @@
 #! /bin/bash
 
-lein test
+bb test-runner.clj
 export RC=$?
 if [ $RC -ne 0 ]; then
   exit $RC
