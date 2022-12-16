@@ -29,11 +29,11 @@ run`.
              default: UTF-8
         -a : Originating account of transactions
              default: Assets:Checking
-        -F : CSV field separator
+        -j : CSV field separator
              default: ,
-       -sa : CSV header lines to skip
+        -b : CSV header lines to skip
              default: 0
-       -sz : CSV trailer lines to skip
+        -z : CSV trailer lines to skip
              default: 0
         -c : Currency
              default: SEK
@@ -47,13 +47,13 @@ run`.
              default: 2
         -t : Text (descriptor) column index specs (zero-based)
              default: %3
-       -ds : Decimal sign character
+        -x : Decimal sign character
              default: .
-       -gs : Decimal group (thousands) separator character
+        -y : Decimal group (thousands) separator character
              default: ,
-       -hf : Hooks file defining customized output entries
+        -k : Hooks file defining customized output entries
              default: nil
-      -dbg : Include debug information in the generated output
+        -i : Include debug information in the generated output
              default: false
 
 `banks2ledger` will write ledger transactions to standard output. It
@@ -99,7 +99,7 @@ Examples to provide as the `-t` option:
 
 ### Amount format
 
-The `-ds` and `-gs` options allow parsing almost arbitrarily formatted
+The `-x` and `-y` options allow parsing almost arbitrarily formatted
 decimal numbers from the amount column. Their usage is entirely
 optional. With both options omitted, the accepted numbers are of the
 usual "Western" format, i.e., a string of digits starting with an
@@ -111,19 +111,19 @@ Evident garbage (text that cannot be possibly part of a number) both
 before and after the number is implicitly discarded, so having a
 currency as part of the amount field should not be a problem.
 
-Examples of setting `-ds` and `-gs` for parsing different amount
+Examples of setting `-x` and `-y` for parsing different amount
 formats:
 
-|   Example amount | Parse options     |
-|-----------------:|-------------------|
-| `"1,234,567.89"` | *(defaults)*      |
-| `"1.234.567,89"` | `-ds ',' -gs '.'` |
-| `"1 234 567,89"` | `-ds ',' -gs ' '` |
-|  `"123_4567.89"` | `-gs '_'`         |
+|   Example amount | Parse options   |
+|-----------------:|-----------------|
+| `"1,234,567.89"` | *(defaults)*    |
+| `"1.234.567,89"` | `-x ',' -y '.'` |
+| `"1 234 567,89"` | `-x ',' -y ' '` |
+|  `"123_4567.89"` | `-y '_'`        |
 
 ### Custom hooks to generate output transactions
 
-The option `-hf` allows passing a file containing Clojure code that
+The option `-k` allows passing a file containing Clojure code that
 defines custom hooks. These hooks are invoked when generating the
 output ledger entries; the hooks have the ability to alter the output
 for certain transactions. This mechanism provides high flexibility as
