@@ -201,121 +201,6 @@
     (println)))
 
 
-(defn filepath-exists?
-  [filepath]
-  (.exists (io/file filepath)))
-
-
-;; command line args spec
-(def cli-options
-  [["-l" "--ledger-file LEDGER-FILE" "Ledger file to get accounts and probabilities"
-    :default "ledger.dat"
-    :validate [filepath-exists? "The specified ledger file doesn't exist"]]
-   ["-f" "--csv-file CSV-FILE" "Input transactions in CSV format"
-    :default "transactions.csv"
-    :validate [filepath-exists? "The specified transactions csv file doesn't exist"]]
-   ["-e" "--csv-file-encoding ENCODING" "Encoding of the CSV file"
-    :default "UTF-8"
-    :validate [(complement string/blank?) "Invalid CSV file encoding"]]
-   ["-a" "--account ACCOUNT" "Originating account of transactions"
-    :default "Assets:Checking"
-    :validate [(complement string/blank?) "Invalid originating account of transactions"]]
-   ["-j" "--csv-field-separator SEPARATOR" "CSV field separator"
-    :default \,
-    :parse-fn first
-    :validate [some? "Invalid CSV field separator"]]
-   ["-b" "--csv-skip-header-lines INTEGER" "CSV header lines to skip"
-    :default 0
-    :parse-fn parse-long
-    :validate [nat-int? "Invalid value specified for CSV header lines to skip"]]
-   ["-z" "--csv-skip-trailer-lines INTEGER" "CSV trailer lines to skip"
-    :default 0
-    :parse-fn parse-long
-    :validate [nat-int? "Invalid value specified for CSV trailer lines to skip"]]
-   ["-c" "--currency CURRENCY" "Currency"
-    :default "SEK"
-    :validate [(complement string/blank?) "Invalid currency"]]
-   ["-D" "--date-format FORMAT" "Format of date field in CSV file"
-    :default "yyyy-MM-dd"
-    :validate [(complement string/blank?) "Invalid format of date field in CSV file"]]
-   ["-d" "--date-col INTEGER" "Date column index (zero-based)"
-    :default 0
-    :parse-fn parse-long
-    :validate [nat-int? "Invalid date column index"]]
-   ["-r" "--ref-col INTEGER" "Payment reference column index (zero-based)"
-    :default -1
-    :parse-fn parse-long
-    :validate [int? "Must be integer"]]
-   ["-m" "--amount-col INTEGER" "Amount column index (zero-based)"
-    :default 2
-    :parse-fn parse-long
-    :validate [nat-int? "Must be >= 0"]]
-   ["-t" "--descr-col INTEGER" "Text (descriptor) column index specs (zero-based)"
-    :default "%3"
-    :validate [(complement string/blank?) "Must be specified"]]
-   ["-x" "--amount-decimal-separator SEPARATOR" "Decimal sign character"
-    :default "."
-    :parse-fn first
-    :validate [some? "Must be specified"]]
-   ["-y" "--amount-grouping-separator SEPARATOR" "Decimal group (thousands) separator character"
-    :default ","
-    :parse-fn first
-    :validate [some? "Must be specified"]]
-   ["-k" "--hooks-file FILE" "Hooks file defining customized output entries"
-    :default nil
-    :validate [filepath-exists? "The specified hooks hooks file doesn't exist"]]
-   ["-i" "--debug DEBUG" "Include debug information in the generated output"
-    :default false
-    :parse-fn #{"true" "false"}]
-   ["-h" "--help"]])
-
-
-(defn usage
-  [options-summary]
-  (->> ["A tool to convert bank account CSV files to ledger."
-        "Guesses account name via simple Bayesian inference based on your existing ledger file."
-        ""
-        "Usage: banks2ledger [options]"
-        ""
-        "Options:"
-        options-summary
-        ""
-        "Please refer to the home page for more information."]
-       (string/join \newline)))
-
-
-(defn error-msg
-  [errors]
-  (str "The following errors occurred while parsing your command:\n\n"
-       (string/join \newline errors)))
-
-
-(defn validate-args
-  "Validate command line arguments. Either return a map indicating the program
-  should exit (with an error message, and optional ok status), or a map
-  indicating the action the program should take and the options provided."
-  [args]
-  (let [{:keys [options errors summary]} (tools-cli/parse-opts args cli-options)]
-    (cond
-      (:help options)                                       ; help => exit OK with usage summary
-      {:exit-message (usage summary) :ok? true}
-
-      errors                                                ; errors => exit with description of errors
-      {:exit-message (error-msg errors)}
-
-      (not (filepath-exists? (:ledger-file options)))
-      {:exit-message (error-msg [(str "Ledger file '" (:ledger-file options) "' not found")])}
-
-      :else
-      {:options options})))
-
-
-(defn exit
-  [status msg]
-  (println msg)
-  (System/exit status))
-
-
 ;; Convert date field from CSV format to Ledger entry format
 (defn convert-date
   [{:keys [date-format]} datestr]
@@ -531,6 +416,121 @@
         entry       {:date    date :ref ref :amount amount :currency currency
                      :account account :counter-acc counter-acc :descr descr}]
     (process-hooks! entry)))
+
+
+(defn filepath-exists?
+  [filepath]
+  (.exists (io/file filepath)))
+
+
+;; command line args spec
+(def cli-options
+  [["-l" "--ledger-file LEDGER-FILE" "Ledger file to get accounts and probabilities"
+    :default "ledger.dat"
+    :validate [filepath-exists? "The specified ledger file doesn't exist"]]
+   ["-f" "--csv-file CSV-FILE" "Input transactions in CSV format"
+    :default "transactions.csv"
+    :validate [filepath-exists? "The specified transactions csv file doesn't exist"]]
+   ["-e" "--csv-file-encoding ENCODING" "Encoding of the CSV file"
+    :default "UTF-8"
+    :validate [(complement string/blank?) "Invalid CSV file encoding"]]
+   ["-a" "--account ACCOUNT" "Originating account of transactions"
+    :default "Assets:Checking"
+    :validate [(complement string/blank?) "Invalid originating account of transactions"]]
+   ["-j" "--csv-field-separator SEPARATOR" "CSV field separator"
+    :default \,
+    :parse-fn first
+    :validate [some? "Invalid CSV field separator"]]
+   ["-b" "--csv-skip-header-lines INTEGER" "CSV header lines to skip"
+    :default 0
+    :parse-fn parse-long
+    :validate [nat-int? "Invalid value specified for CSV header lines to skip"]]
+   ["-z" "--csv-skip-trailer-lines INTEGER" "CSV trailer lines to skip"
+    :default 0
+    :parse-fn parse-long
+    :validate [nat-int? "Invalid value specified for CSV trailer lines to skip"]]
+   ["-c" "--currency CURRENCY" "Currency"
+    :default "SEK"
+    :validate [(complement string/blank?) "Invalid currency"]]
+   ["-D" "--date-format FORMAT" "Format of date field in CSV file"
+    :default "yyyy-MM-dd"
+    :validate [(complement string/blank?) "Invalid format of date field in CSV file"]]
+   ["-d" "--date-col INTEGER" "Date column index (zero-based)"
+    :default 0
+    :parse-fn parse-long
+    :validate [nat-int? "Invalid date column index"]]
+   ["-r" "--ref-col INTEGER" "Payment reference column index (zero-based)"
+    :default -1
+    :parse-fn parse-long
+    :validate [int? "Must be integer"]]
+   ["-m" "--amount-col INTEGER" "Amount column index (zero-based)"
+    :default 2
+    :parse-fn parse-long
+    :validate [nat-int? "Must be >= 0"]]
+   ["-t" "--descr-col INTEGER" "Text (descriptor) column index specs (zero-based)"
+    :default "%3"
+    :validate [(complement string/blank?) "Must be specified"]]
+   ["-x" "--amount-decimal-separator SEPARATOR" "Decimal sign character"
+    :default "."
+    :parse-fn first
+    :validate [some? "Must be specified"]]
+   ["-y" "--amount-grouping-separator SEPARATOR" "Decimal group (thousands) separator character"
+    :default ","
+    :parse-fn first
+    :validate [some? "Must be specified"]]
+   ["-k" "--hooks-file FILE" "Hooks file defining customized output entries"
+    :default nil
+    :validate [filepath-exists? "The specified hooks hooks file doesn't exist"]]
+   ["-i" "--debug DEBUG" "Include debug information in the generated output"
+    :default false
+    :parse-fn #{"true" "false"}]
+   ["-h" "--help"]])
+
+
+(defn usage
+  [options-summary]
+  (->> ["A tool to convert bank account CSV files to ledger."
+        "Guesses account name via simple Bayesian inference based on your existing ledger file."
+        ""
+        "Usage: banks2ledger [options]"
+        ""
+        "Options:"
+        options-summary
+        ""
+        "Please refer to the home page for more information."]
+       (string/join \newline)))
+
+
+(defn error-msg
+  [errors]
+  (str "The following errors occurred while parsing your command:\n\n"
+       (string/join \newline errors)))
+
+
+(defn validate-args
+  "Validate command line arguments. Either return a map indicating the program
+  should exit (with an error message, and optional ok status), or a map
+  indicating the action the program should take and the options provided."
+  [args]
+  (let [{:keys [options errors summary]} (tools-cli/parse-opts args cli-options)]
+    (cond
+      (:help options)                                       ; help => exit OK with usage summary
+      {:exit-message (usage summary) :ok? true}
+
+      errors                                                ; errors => exit with description of errors
+      {:exit-message (error-msg errors)}
+
+      (not (filepath-exists? (:ledger-file options)))
+      {:exit-message (error-msg [(str "Ledger file '" (:ledger-file options) "' not found")])}
+
+      :else
+      {:options options})))
+
+
+(defn exit
+  [status msg]
+  (println msg)
+  (System/exit status))
 
 
 ;; Convert CSV of bank account transactions to corresponding ledger entries
