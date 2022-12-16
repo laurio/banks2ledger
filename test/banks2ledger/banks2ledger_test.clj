@@ -1,18 +1,17 @@
-(ns banks2ledger.core-test
+(ns banks2ledger.banks2ledger-test
   (:require
-    [banks2ledger.core :refer [all-indices best-accounts
-                               cl-args-spec clip-string convert-amount
-                               convert-date format-colspec format-value
-                               get-arg get-col n_occur p_belong parse-args
-                               parse-ledger-entry print-ledger-entry!
-                               split-by-indices split-ledger-entry tokenize
-                               toktab-inc toktab-update unquote-string]]
+    [banks2ledger.banks2ledger :refer [all-indices best-accounts
+                                       clip-string convert-amount
+                                       convert-date format-colspec format-value
+                                       get-col n_occur p_belong
+                                       parse-ledger-entry print-ledger-entry!
+                                       split-by-indices split-ledger-entry tokenize
+                                       toktab-inc toktab-update unquote-string]]
     [clojure.string :as string]
     [clojure.test :refer [deftest is testing]])
   (:import
     (java.util
-      Locale
-      Locale$Builder)))
+      Locale)))
 
 
 ;; Compare a and b for "equal enough" (used for testing float results)
@@ -196,27 +195,13 @@
             :accs ["Expenses:Supplies" "Assets:Bank account"]}))))
 
 
-(deftest test-get-arg
-  (testing "get-arg"
-    (is (= (get-arg cl-args-spec :amount-col) 2))
-    (is (= (get-arg cl-args-spec :descr-col) "%3"))))
-
-
-(deftest test-parse-args
-  (testing "parse-args"
-    (is (= (:value (:csv-file (parse-args cl-args-spec ["-f" "abcde.csv"])))
-           "abcde.csv"))
-    (is (= (:value (:amount-col (parse-args cl-args-spec ["-m" "4"])))
-           "4"))))
-
-
 (deftest test-convert-date
   (testing "convert-date"
-    (is (= (convert-date {:date-format {:value "yyyy-MM-dd"}} "2016-04-24")
+    (is (= (convert-date {:date-format "yyyy-MM-dd"} "2016-04-24")
            "2016/04/24"))
-    (is (= (convert-date {:date-format {:value "MM/dd/yy"}} "04/24/16")
+    (is (= (convert-date {:date-format "MM/dd/yy"} "04/24/16")
            "2016/04/24"))
-    (is (= (convert-date {:date-format {:value "yyyy/MM/dd"}} "2016/04/24")
+    (is (= (convert-date {:date-format "yyyy/MM/dd"} "2016/04/24")
            "2016/04/24"))))
 
 
@@ -228,17 +213,9 @@
     (is (= (format-value 1234567.89) "1,234,567.89"))))
 
 
-(defn- locale
-  [language region]
-  (.build
-    (doto (Locale$Builder.)
-      (.setLanguage language)
-      (.setRegion region))))
-
-
 (deftest test-format-value-with-nonUS-locale
   (let [default-locale (Locale/getDefault)]
-    (Locale/setDefault (locale "sv" "SE"))
+    (Locale/setDefault (Locale. "sv" "SE"))
     (testing "format-value-with-nonUS-locale"
       (is (= (format-value 0.0) "0.00"))
       (is (= (format-value -10.237) "-10.24"))
@@ -249,68 +226,68 @@
 
 (deftest test-convert-amount
   (testing "convert-amount"
-    (is (= (convert-amount {:amount-decimal-separator  {:value \,}
-                            :amount-grouping-separator {:value \space}}
+    (is (= (convert-amount {:amount-decimal-separator  \,
+                            :amount-grouping-separator \space}
                            "12500,19")
            "12,500.19")
         "A number without grouping separators")
-    (is (= (convert-amount {:amount-decimal-separator  {:value \,}
-                            :amount-grouping-separator {:value \space}}
+    (is (= (convert-amount {:amount-decimal-separator  \,
+                            :amount-grouping-separator \space}
                            "1 125 000,00")
            "1,125,000.00")
         "A number with space as grouping separator")
-    (is (= (convert-amount {:amount-decimal-separator  {:value \.}
-                            :amount-grouping-separator {:value \,}}
+    (is (= (convert-amount {:amount-decimal-separator  \.
+                            :amount-grouping-separator \,}
                            "Lots of chars here, and the number -> 100200.12 <- the number")
            "100,200.12")
         "A number surrounded by text")
-    (is (= (convert-amount {:amount-decimal-separator  {:value \.}
-                            :amount-grouping-separator {:value \,}}
+    (is (= (convert-amount {:amount-decimal-separator  \.
+                            :amount-grouping-separator \,}
                            "egy azaz 1 krumpli")
            "1.00")
         "A number with a prefix and a suffix")
-    (is (= (convert-amount {:amount-decimal-separator  {:value \.}
-                            :amount-grouping-separator {:value \,}} "--12")
+    (is (= (convert-amount {:amount-decimal-separator  \.
+                            :amount-grouping-separator \,} "--12")
            "-12.00")
         "A negative number with 2 minus signs")
-    (is (= (convert-amount {:amount-decimal-separator  {:value \.}
-                            :amount-grouping-separator {:value \,}} "+12.34")
+    (is (= (convert-amount {:amount-decimal-separator  \.
+                            :amount-grouping-separator \,} "+12.34")
            "12.34")
         "A positive number with an explicit plus sign")
-    (is (= (convert-amount {:amount-decimal-separator  {:value \.}
-                            :amount-grouping-separator {:value \,}} "-123.45 kr")
+    (is (= (convert-amount {:amount-decimal-separator  \.
+                            :amount-grouping-separator \,} "-123.45 kr")
            "-123.45")
         "A negative number with a currency suffix")
-    (is (= (convert-amount {:amount-decimal-separator  {:value \,}
-                            :amount-grouping-separator {:value \.}} "-110.003,45 kr")
+    (is (= (convert-amount {:amount-decimal-separator  \,
+                            :amount-grouping-separator \.} "-110.003,45 kr")
            "-110,003.45")
         "A negative number with a currency suffix and custom separators")
-    (is (= (convert-amount {:amount-decimal-separator  {:value \,}
-                            :amount-grouping-separator {:value \.}} "8,01")
+    (is (= (convert-amount {:amount-decimal-separator  \,
+                            :amount-grouping-separator \.} "8,01")
            "8.01")
         "A number with a custom decimal separator")
-    (is (= (convert-amount {:amount-decimal-separator  {:value \,}
-                            :amount-grouping-separator {:value \.}} "876.543,21")
+    (is (= (convert-amount {:amount-decimal-separator  \,
+                            :amount-grouping-separator \.} "876.543,21")
            "876,543.21")
         "A large number with a custom decimal separator")
-    (is (= (convert-amount {:amount-decimal-separator  {:value \,}
-                            :amount-grouping-separator {:value \space}} "5 125 000,01")
+    (is (= (convert-amount {:amount-decimal-separator  \,
+                            :amount-grouping-separator \space} "5 125 000,01")
            "5,125,000.01")
         "A number with spaces as group separator")
-    (is (= (convert-amount {:amount-decimal-separator  {:value \,}
-                            :amount-grouping-separator {:value \space}} "-7 000,00")
+    (is (= (convert-amount {:amount-decimal-separator  \,
+                            :amount-grouping-separator \space} "-7 000,00")
            "-7,000.00")
         "Another number with spaces as group separator")
-    (is (= (convert-amount {:amount-decimal-separator  {:value \.}
-                            :amount-grouping-separator {:value \_}} "9123_4567.89")
+    (is (= (convert-amount {:amount-decimal-separator  \.
+                            :amount-grouping-separator \_} "9123_4567.89")
            "91,234,567.89")
         "A number with custom spaced underscores as group separator")
-    (is (= (convert-amount {:amount-decimal-separator  {:value \.}
-                            :amount-grouping-separator {:value \,}} "usd 10,123.45")
+    (is (= (convert-amount {:amount-decimal-separator  \.
+                            :amount-grouping-separator \,} "usd 10,123.45")
            "10,123.45")
         "A number with a currency prefix and standard separators")
-    (is (= (convert-amount {:amount-decimal-separator  {:value \.}
-                            :amount-grouping-separator {:value \,}}
+    (is (= (convert-amount {:amount-decimal-separator  \.
+                            :amount-grouping-separator \,}
                            "-1234,5671.28")
            "-12,345,671.28")
         "A number with custom spacing for groups")))

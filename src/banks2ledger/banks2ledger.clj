@@ -1,10 +1,11 @@
 #!/usr/bin/env bb
-(ns banks2ledger.core
+(ns banks2ledger.banks2ledger
   (:gen-class)
   (:require
     [clojure.data.csv :as csv]
     [clojure.java.io :as io]
-    [clojure.string :as string])
+    [clojure.string :as string]
+    [clojure.tools.cli :as tools-cli])
   (:import
     (java.text
       SimpleDateFormat)
@@ -13,7 +14,7 @@
 
 
 ;; Set to true to include debug information in the generated output.
-;; To set this at runtime, add '-dbg true' to the argument list.
+;; To set this at runtime, add '-i true' to the argument list.
 (def +debug+ (atom false))
 
 
@@ -200,148 +201,12 @@
     (println)))
 
 
-;; command line args spec
-(def cl-args-spec
-  (array-map
-    :ledger-file
-    {:opt  "-l" :value "ledger.dat"
-     :help "Ledger file to get accounts and probabilities"}
-
-    :csv-file
-    {:opt  "-f" :value "transactions.csv"
-     :help "Input transactions in CSV format"}
-
-    :csv-file-encoding
-    {:opt  "-e" :value "UTF-8"
-     :help "Encoding of the CSV file"}
-
-    :account
-    {:opt  "-a" :value "Assets:Checking"
-     :help "Originating account of transactions"}
-
-    :csv-field-separator
-    {:opt "-F" :value "," :help "CSV field separator"}
-
-    :csv-skip-header-lines
-    {:opt  "-sa" :value 0 :conv-fun #(Integer. %)
-     :help "CSV header lines to skip"}
-
-    :csv-skip-trailer-lines
-    {:opt  "-sz" :value 0 :conv-fun #(Integer. %)
-     :help "CSV trailer lines to skip"}
-
-    :currency
-    {:opt "-c" :value "SEK" :help "Currency"}
-
-    :date-format
-    {:opt "-D" :value "yyyy-MM-dd" :help "Format of date field in CSV file"}
-
-    :date-col
-    {:opt  "-d" :value 0 :conv-fun #(Integer. %)
-     :help "Date column index (zero-based)"}
-
-    :ref-col
-    {:opt  "-r" :value -1 :conv-fun #(Integer. %)
-     :help "Payment reference column index (zero-based)"}
-
-    :amount-col
-    {:opt  "-m" :value 2 :conv-fun #(Integer. %)
-     :help "Amount column index (zero-based)"}
-
-    :descr-col
-    {:opt  "-t" :value "%3"
-     :help "Text (descriptor) column index specs (zero-based)"}
-
-    :amount-decimal-separator
-    {:opt  "-ds" :value "." :conv-fun first
-     :help "Decimal sign character"}
-
-    :amount-grouping-separator
-    {:opt  "-gs" :value "," :conv-fun first
-     :help "Decimal group (thousands) separator character"}
-
-    :hooks-file
-    {:opt  "-hf" :value nil
-     :help "Hooks file defining customized output entries"}
-
-    :debug
-    {:opt  "-dbg" :value false
-     :help "Include debug information in the generated output"}))
-
-
-(defn print-usage-and-die
-  [message]
-  (println message)
-  (println)
-  (println "Usage: banks2ledger [options]")
-  (println "  available options (syntax to set: -x value)")
-  (doseq [{:keys [opt value help]} (vals cl-args-spec)]
-    (println (format "%4s" opt) ":" help)
-    (println "       default:" value))
-  (System/exit 0))
-
-
-(defn optvec
-  [args-spec]
-  (into [] (map :opt (vals args-spec))))
-
-
-;; Get the value of an argument given by key.
-;; If present, apply converter function.
-(defn get-arg
-  [args-spec key]
-  (let [arg-spec  (key args-spec)
-        conv-fun  (:conv-fun arg-spec)
-        raw-value (:value arg-spec)]
-    (cond-> raw-value
-      (some? conv-fun) conv-fun)))
-
-
-(defn find-first
-  "Finds the first item in a collection that matches a predicate."
-  [pred coll]
-  (reduce (fn [_ x]
-            (when (pred x)
-              (reduced x)))
-          nil
-          coll))
-
-
-(defn set-arg
-  [args-spec arg value]
-  (let [key  (find-first #(= arg (:opt (% args-spec)))
-                         (keys args-spec))
-        val0 (key args-spec)
-        val  (conj val0 [:value value])]
-    (conj args-spec [key val])))
-
-
-(declare parse-args)
-
-
-(defn parse-arg
-  [args-spec arg rest-args]
-  (if (not-any? #{arg} (optvec cl-args-spec))
-    (print-usage-and-die (str "Invalid argument: " arg))
-    (if-let [value (first rest-args)]
-      (parse-args (set-arg args-spec arg value)
-                  (rest rest-args))
-      (print-usage-and-die (str "Value expected for option " arg)))))
-
-
-;; Go through the args list and return an updated args-spec
-(defn parse-args
-  [args-spec args]
-  (cond-> args-spec
-    (seq args) (parse-arg (first args) (rest args))))
-
-
 ;; Convert date field from CSV format to Ledger entry format
 (defn convert-date
-  [args-spec datestr]
+  [{:keys [date-format]} datestr]
   (.format
     (SimpleDateFormat. "yyyy/MM/dd")
-    (.parse (SimpleDateFormat. (get-arg args-spec :date-format))
+    (.parse (SimpleDateFormat. date-format)
             datestr)))
 
 
@@ -367,11 +232,11 @@
 
 ;; Convert CSV amount string - note the return value is still a string!
 (defn convert-amount
-  [args-spec s]
+  [options s]
   (-> s
       remove-leading-garbage
-      (string/replace (str (get-arg args-spec :amount-grouping-separator)) "")
-      (string/replace (str (get-arg args-spec :amount-decimal-separator)) ".")
+      (string/replace (str (:amount-grouping-separator options)) "")
+      (string/replace (str (:amount-decimal-separator options)) ".")
       remove-trailing-garbage
       parse-double
       format-value))
@@ -453,30 +318,29 @@
 ;; Parse a line of CSV into a map with :date :ref :amount :descr
 (defn parse-csv-entry
   [params cols]
-  (let [ref-col (get-arg params :ref-col)]
-    {:date   (convert-date params (nth cols (get-arg params :date-col)))
+  (let [ref-col (:ref-col params)]
+    {:date   (convert-date params (nth cols (:date-col params)))
      :ref    (when (nat-int? ref-col)
                (unquote-string (nth cols ref-col)))
-     :amount (convert-amount params (nth cols (get-arg params :amount-col)))
-     :descr  (unquote-string (get-col cols (get-arg params :descr-col)))}))
+     :amount (convert-amount params (nth cols (:amount-col params)))
+     :descr  (unquote-string (get-col cols (:descr-col params)))}))
 
 
 ;; Drop the configured number of header and trailer lines
 (defn drop-lines
-  [lines params]
+  [lines options]
   (->> lines
-       (drop (get-arg params :csv-skip-header-lines))
-       (drop-last (get-arg params :csv-skip-trailer-lines))))
+       (drop (:csv-skip-header-lines options))
+       (drop-last (:csv-skip-trailer-lines options))))
 
 
 ;; Parse input CSV into a list of maps
 (defn parse-csv
-  [reader params]
-  (->> params
+  [reader {:keys [csv-field-separator] :as options}]
+  (->> options
        (drop-lines (csv/read-csv reader
-                                 :separator
-                                 (first (get-arg params :csv-field-separator))))
-       (map (partial parse-csv-entry params))))
+                                 :separator csv-field-separator))
+       (map (partial parse-csv-entry options))))
 
 
 ;; print a ledger entry to *out*
@@ -546,34 +410,149 @@
 
 ;; generate a ledger entry -- invoke user-defined hooks
 (defn generate-ledger-entry!
-  [params acc-maps
+  [{:keys [account currency]} acc-maps
    {:keys [date ref amount descr]}]
-  (let [account     (get-arg params :account)
-        counter-acc (decide-account acc-maps descr account)
-        currency    (get-arg params :currency)
+  (let [counter-acc (decide-account acc-maps descr account)
         entry       {:date    date :ref ref :amount amount :currency currency
                      :account account :counter-acc counter-acc :descr descr}]
     (process-hooks! entry)))
 
 
+(defn filepath-exists?
+  [filepath]
+  (.exists (io/file filepath)))
+
+
+;; command line args spec
+(def cli-options
+  [["-l" "--ledger-file LEDGER-FILE" "Ledger file to get accounts and probabilities"
+    :default "ledger.dat"
+    :validate [filepath-exists? "The specified ledger file doesn't exist"]]
+   ["-f" "--csv-file CSV-FILE" "Input transactions in CSV format"
+    :default "transactions.csv"
+    :validate [filepath-exists? "The specified transactions csv file doesn't exist"]]
+   ["-e" "--csv-file-encoding ENCODING" "Encoding of the CSV file"
+    :default "UTF-8"
+    :validate [(complement string/blank?) "Invalid CSV file encoding"]]
+   ["-a" "--account ACCOUNT" "Originating account of transactions"
+    :default "Assets:Checking"
+    :validate [(complement string/blank?) "Invalid originating account of transactions"]]
+   ["-j" "--csv-field-separator SEPARATOR" "CSV field separator"
+    :default \,
+    :parse-fn first
+    :validate [some? "Invalid CSV field separator"]]
+   ["-b" "--csv-skip-header-lines INTEGER" "CSV header lines to skip"
+    :default 0
+    :parse-fn parse-long
+    :validate [nat-int? "Invalid value specified for CSV header lines to skip"]]
+   ["-z" "--csv-skip-trailer-lines INTEGER" "CSV trailer lines to skip"
+    :default 0
+    :parse-fn parse-long
+    :validate [nat-int? "Invalid value specified for CSV trailer lines to skip"]]
+   ["-c" "--currency CURRENCY" "Currency"
+    :default "SEK"
+    :validate [(complement string/blank?) "Invalid currency"]]
+   ["-D" "--date-format FORMAT" "Format of date field in CSV file"
+    :default "yyyy-MM-dd"
+    :validate [(complement string/blank?) "Invalid format of date field in CSV file"]]
+   ["-d" "--date-col INTEGER" "Date column index (zero-based)"
+    :default 0
+    :parse-fn parse-long
+    :validate [nat-int? "Invalid date column index"]]
+   ["-r" "--ref-col INTEGER" "Payment reference column index (zero-based)"
+    :default -1
+    :parse-fn parse-long
+    :validate [int? "Must be integer"]]
+   ["-m" "--amount-col INTEGER" "Amount column index (zero-based)"
+    :default 2
+    :parse-fn parse-long
+    :validate [nat-int? "Must be >= 0"]]
+   ["-t" "--descr-col INTEGER" "Text (descriptor) column index specs (zero-based)"
+    :default "%3"
+    :validate [(complement string/blank?) "Must be specified"]]
+   ["-x" "--amount-decimal-separator SEPARATOR" "Decimal sign character"
+    :default "."
+    :parse-fn first
+    :validate [some? "Must be specified"]]
+   ["-y" "--amount-grouping-separator SEPARATOR" "Decimal group (thousands) separator character"
+    :default ","
+    :parse-fn first
+    :validate [some? "Must be specified"]]
+   ["-k" "--hooks-file FILE" "Hooks file defining customized output entries"
+    :default nil
+    :validate [filepath-exists? "The specified hooks hooks file doesn't exist"]]
+   ["-i" "--debug DEBUG" "Include debug information in the generated output"
+    :default false
+    :parse-fn #{"true" "false"}]
+   ["-h" "--help"]])
+
+
+(defn usage
+  [options-summary]
+  (->> ["A tool to convert bank account CSV files to ledger."
+        "Guesses account name via simple Bayesian inference based on your existing ledger file."
+        ""
+        "Usage: banks2ledger [options]"
+        ""
+        "Options:"
+        options-summary
+        ""
+        "Please refer to the home page for more information."]
+       (string/join \newline)))
+
+
+(defn error-msg
+  [errors]
+  (str "The following errors occurred while parsing your command:\n\n"
+       (string/join \newline errors)))
+
+
+(defn validate-args
+  "Validate command line arguments. Either return a map indicating the program
+  should exit (with an error message, and optional ok status), or a map
+  indicating the action the program should take and the options provided."
+  [args]
+  (let [{:keys [options errors summary]} (tools-cli/parse-opts args cli-options)]
+    (cond
+      (:help options)                                       ; help => exit OK with usage summary
+      {:exit-message (usage summary) :ok? true}
+
+      errors                                                ; errors => exit with description of errors
+      {:exit-message (error-msg errors)}
+
+      (not (filepath-exists? (:ledger-file options)))
+      {:exit-message (error-msg [(str "Ledger file '" (:ledger-file options) "' not found")])}
+
+      :else
+      {:options options})))
+
+
+(defn exit
+  [status msg]
+  (println msg)
+  (System/exit status))
+
+
 ;; Convert CSV of bank account transactions to corresponding ledger entries
 (defn -main
   [& args]
-  (let [params   (parse-args cl-args-spec args)
-        acc-maps (parse-ledger (get-arg params :ledger-file))]
-    (reset! +debug+ (get-arg params :debug))
-    (when @+debug+
-      (with-open [acc-maps-dump-file (io/writer "acc_maps_dump.txt")]
-        (binding [*out* acc-maps-dump-file]
-          (print-acc-maps acc-maps))))
-    (some-> (get-arg params :hooks-file)
-            load-file)
-    (with-open [reader (io/reader (get-arg params :csv-file)
-                                  :encoding (get-arg params :csv-file-encoding))]
-      (run! (partial generate-ledger-entry! params acc-maps)
-            (parse-csv reader params))
-      (flush))))
+  (let [{:keys [options exit-message ok?]} (validate-args args)]
+    (if exit-message
+      (exit (if ok? 0 1) exit-message)
+      (let [acc-maps (parse-ledger (:ledger-file options))]
+        (reset! +debug+ (:debug options))
+        (when @+debug+
+          (with-open [acc-maps-dump-file (io/writer "acc_maps_dump.txt")]
+            (binding [*out* acc-maps-dump-file]
+              (print-acc-maps acc-maps))))
+        (some-> (:hooks-file options)
+                load-file)
+        (with-open [reader (io/reader (:csv-file options)
+                                      :encoding (:csv-file-encoding options))]
+          (run! (partial generate-ledger-entry! options acc-maps)
+                (parse-csv reader options))
+          (flush))))))
 
 
 (when (= *file* (System/getProperty "babashka.file"))
-  (-main))
+  (apply -main *command-line-args*))
