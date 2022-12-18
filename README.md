@@ -164,9 +164,9 @@ roll a `Makefile` or similar solution to process your input files; see
 [this article] for an example.
 
 
-[this article]:               https://tomszilagyi.github.io/payment-matching
+[this article]:               https://tomscii.sig7.se/2016/04/Payment-matching-done-right
 
-[hooks-tutorial]:             https://tomszilagyi.github.io/2018/08/Custom-transactions-in-banks2ledger
+[hooks-tutorial]:             https://tomscii.sig7.se/2018/08/Custom-transactions-in-banks2ledger
 
 [Clojure]:                    http://clojure.org
 

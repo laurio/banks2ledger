@@ -380,7 +380,7 @@
 
 
 ;; Example hook formatters for testing
-;; See also: https://tomszilagyi.github.io/2018/08/Custom-transactions-in-banks2ledger
+;; See also: https://tomscii.sig7.se/2018/08/Custom-transactions-in-banks2ledger
 
 (defn round
   [^Double x]
