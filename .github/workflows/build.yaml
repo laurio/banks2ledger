@@ -1,0 +1,20 @@
+name: banks2ledger
+
+on:
+  push:
+    branches: [ main ]
+    ignore_tags: "**"
+  pull_request:
+    branches: "**"
+
+jobs:
+  test:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Run tests
+        uses: tzafrirben/babashka-docker-action@v1
+        with:
+          bb_src: ./test.sh
