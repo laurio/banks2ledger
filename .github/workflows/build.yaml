@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@latest
+      - uses: actions/checkout@v3
 
       - uses: DeLaGuardo/setup-clj-kondo@master
         with:
@@ -16,7 +16,7 @@ jobs:
         run: clj-kondo --lint src
 
       - name: Setup Babashka
-        uses: turtlequeue/setup-babashka@vlatest
+        uses: turtlequeue/setup-babashka@1.5.0
         with:
           babashka-version: 1.0.168
 
