@@ -1,11 +1,6 @@
 name: banks2ledger
 
-on:
-  push:
-    branches: [ main ]
-    ignore_tags: "**"
-  pull_request:
-    branches: "**"
+on: [push]
 
 jobs:
   test:
