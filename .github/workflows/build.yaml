@@ -16,4 +16,5 @@ jobs:
 
       - name: Run tests
         uses: tzafrirben/babashka-docker-action@v1.1
-        run: ./test.sh
+        with:
+          bb_src: ./test-runner.clj
