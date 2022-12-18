@@ -168,6 +168,6 @@ roll a `Makefile` or similar solution to process your input files; see
 
 [hooks-tutorial]:             https://tomscii.sig7.se/2018/08/Custom-transactions-in-banks2ledger
 
-[Clojure]:                    http://clojure.org
+[Clojure]:                    https://clojure.org
 
-[Babashka]:                   https://babashka.org/
+[Babashka]:                   https://babashka.org
