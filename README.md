@@ -9,13 +9,10 @@ article].
 
 ## Running and installation
 
-banks2ledger is written in [Clojure], and [Leiningen] is all you
+banks2ledger is written in [Clojure], and [Babashka] is all you
 should need to get up and running.
 
-After cloning the repository, you might want to run `lein uberjar` to
-obtain a self-contained JAR file that can be copied to a system-wide
-installation location. The program can also be run directly via `lein
-run`.
+After installing Babashka the program can be run directly: `./src/banks2ledger/banks2ledger.clj`.
 
 ## Usage
 
@@ -153,7 +150,7 @@ example demonstrating the problem.
 Feel free to open a pull request if you find a bug, or have a feature
 you would like to see included.
 
-There are several unit tests you can run via `lein test`. Make sure
+There are several unit tests you can run via `bb test-runner.clj`. Make sure
 they don't break; also, add coverage for any new functionality you
 might add or regression tests for bugs you might fix.
 
@@ -173,4 +170,4 @@ roll a `Makefile` or similar solution to process your input files; see
 
 [Clojure]:                    http://clojure.org
 
-[Leiningen]:                  http://leiningen.org
+[Babashka]:                   https://babashka.org/
