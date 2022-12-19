@@ -481,7 +481,7 @@
    ["-k" "--hooks-file FILE" "Hooks file defining customized output entries"
     :default nil
     :validate [filepath-exists? "The specified hooks hooks file doesn't exist"]]
-   ["-i" "--debug DEBUG" "Include debug information in the generated output"
+   ["-g" "--debug DEBUG" "Include debug information in the generated output"
     :default false
     :parse-fn #{"true" "false"}]
    ["-h" "--help"]])
