@@ -88,14 +88,14 @@ reference column will be used. Otherwise, set it to the column number
 for the payment reference, and the data from there will be printed as
 part of the generated ledger entry.
 
-The `-t` option takes something called 'column index specs' that
+The `--descr-col` option takes something called 'column index specs' that
 warrants further explanation. Since the description string forms
 the basis of the account inference, and different banks provide
 different layouts in their CSV files (even multiple possible layouts
 for the same file provider) this is used as a flexible way to create
 the descriptor.
 
-The specs string provided for the `-t` option is a string similar to a
+The specs string provided for the `--descr-col` option is a string similar to a
 printf format string, but allows multiple alternatives to be
 specified. Alternatives will be tried in order from left to right,
 and the next alternative is considered only if the current one results
@@ -103,7 +103,7 @@ in an empty string. Alternatives are separated by the exclamation
 mark, and individual columns in the CSV are referenced by `%n` (n is
 the column number; columns are numbered starting with 0).
 
-Examples to provide as the `-t` option:
+Examples to provide as the `--descr-col` option:
 
 - `"%4"`: get fourth column
 - `"%4 %5"`: get fourth and fifth column separated by a space
@@ -137,7 +137,7 @@ formats:
 
 ### Custom hooks to generate output transactions
 
-The option `-k` allows passing a file containing Clojure code that
+The option `--hooks-file` allows passing a file containing Clojure code that
 defines custom hooks. These hooks are invoked when generating the
 output ledger entries; the hooks have the ability to alter the output
 for certain transactions. This mechanism provides high flexibility as
