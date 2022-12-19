@@ -247,43 +247,53 @@
            "1.00")
         "A number with a prefix and a suffix")
     (is (= (convert-amount {:amount-decimal-separator  \.
-                            :amount-grouping-separator \,} "--12")
+                            :amount-grouping-separator \,}
+                           "--12")
            "-12.00")
         "A negative number with 2 minus signs")
     (is (= (convert-amount {:amount-decimal-separator  \.
-                            :amount-grouping-separator \,} "+12.34")
+                            :amount-grouping-separator \,}
+                           "+12.34")
            "12.34")
         "A positive number with an explicit plus sign")
     (is (= (convert-amount {:amount-decimal-separator  \.
-                            :amount-grouping-separator \,} "-123.45 kr")
+                            :amount-grouping-separator \,}
+                           "-123.45 kr")
            "-123.45")
         "A negative number with a currency suffix")
     (is (= (convert-amount {:amount-decimal-separator  \,
-                            :amount-grouping-separator \.} "-110.003,45 kr")
+                            :amount-grouping-separator \.}
+                           "-110.003,45 kr")
            "-110,003.45")
         "A negative number with a currency suffix and custom separators")
     (is (= (convert-amount {:amount-decimal-separator  \,
-                            :amount-grouping-separator \.} "8,01")
+                            :amount-grouping-separator \.}
+                           "8,01")
            "8.01")
         "A number with a custom decimal separator")
     (is (= (convert-amount {:amount-decimal-separator  \,
-                            :amount-grouping-separator \.} "876.543,21")
+                            :amount-grouping-separator \.}
+                           "876.543,21")
            "876,543.21")
         "A large number with a custom decimal separator")
     (is (= (convert-amount {:amount-decimal-separator  \,
-                            :amount-grouping-separator \space} "5 125 000,01")
+                            :amount-grouping-separator \space}
+                           "5 125 000,01")
            "5,125,000.01")
         "A number with spaces as group separator")
     (is (= (convert-amount {:amount-decimal-separator  \,
-                            :amount-grouping-separator \space} "-7 000,00")
+                            :amount-grouping-separator \space}
+                           "-7 000,00")
            "-7,000.00")
         "Another number with spaces as group separator")
     (is (= (convert-amount {:amount-decimal-separator  \.
-                            :amount-grouping-separator \_} "9123_4567.89")
+                            :amount-grouping-separator \_}
+                           "9123_4567.89")
            "91,234,567.89")
         "A number with custom spaced underscores as group separator")
     (is (= (convert-amount {:amount-decimal-separator  \.
-                            :amount-grouping-separator \,} "usd 10,123.45")
+                            :amount-grouping-separator \,}
+                           "usd 10,123.45")
            "10,123.45")
         "A number with a currency prefix and standard separators")
     (is (= (convert-amount {:amount-decimal-separator  \.
