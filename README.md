@@ -18,39 +18,56 @@ After installing Babashka the program can be run directly: `./src/banks2ledger/b
 
     Usage: banks2ledger [options]
       available options (syntax to set: -x value)
-        -l : Ledger file to get accounts and probabilities
+        --ledger-file :
+             Ledger file to get accounts and probabilities
              default: ledger.dat
-        -f : Input transactions in CSV format
+        --csv-file :
+             Input transactions in CSV format
              default: transactions.csv
-        -e : Encoding of the CSV file
+        --csv-file-encoding :
+             Encoding of the CSV file
              default: UTF-8
-        -a : Originating account of transactions
+        --account :
+             Originating account of transactions
              default: Assets:Checking
-        -j : CSV field separator
+        --csv-field-separator :
+             CSV field separator
              default: ,
-        -b : CSV header lines to skip
+        --csv-skip-header-lines :
+             CSV header lines to skip
              default: 0
-        -z : CSV trailer lines to skip
+        --csv-skip-trailer-lines :
+             CSV trailer lines to skip
              default: 0
-        -c : Currency
+        --currency :
+             Currency
              default: SEK
-        -D : Format of date field in CSV file
+        --date-format :
+             Format of date field in CSV file
              default: yyyy-MM-dd
-        -d : Date column index (zero-based)
+        --date-col :
+             Date column index (zero-based)
              default: 0
-        -r : Payment reference column index (zero-based)
+        --ref-col :
+             Payment reference column index (zero-based)
              default: -1
-        -m : Amount column index (zero-based)
+        --amount-col :
+             Amount column index (zero-based)
              default: 2
-        -t : Text (descriptor) column index specs (zero-based)
+        --descr-col :
+             Text (descriptor) column index specs (zero-based)
              default: %3
-        -x : Decimal sign character
+        --amount-decimal-separator :
+             Decimal sign character
              default: .
-        -y : Decimal group (thousands) separator character
+        --amount-grouping-separator :
+             Decimal group (thousands) separator character
              default: ,
-        -k : Hooks file defining customized output entries
+        --hooks-file :
+             Hooks file defining customized output entries
              default: nil
-        -i : Include debug information in the generated output
+        --debug :
+             Include debug information in the generated output
              default: false
 
 `banks2ledger` will write ledger transactions to standard output. It
@@ -65,7 +82,7 @@ transactions.
 
 ### CSV column mapping
 
-The default value for `-r` (-1) means that in case you don't have a
+The default value for `--ref-col` (-1) means that in case you don't have a
 reference column in the CSV, you can simply omit this option and no
 reference column will be used. Otherwise, set it to the column number
 for the payment reference, and the data from there will be printed as
@@ -96,7 +113,7 @@ Examples to provide as the `-t` option:
 
 ### Amount format
 
-The `-x` and `-y` options allow parsing almost arbitrarily formatted
+The `--amount-decimal-separator` and `--amount-grouping-separator` options allow parsing almost arbitrarily formatted
 decimal numbers from the amount column. Their usage is entirely
 optional. With both options omitted, the accepted numbers are of the
 usual "Western" format, i.e., a string of digits starting with an
@@ -108,15 +125,15 @@ Evident garbage (text that cannot be possibly part of a number) both
 before and after the number is implicitly discarded, so having a
 currency as part of the amount field should not be a problem.
 
-Examples of setting `-x` and `-y` for parsing different amount
+Examples of setting `--amount-decimal-separator` and `--amount-grouping-separator` for parsing different amount
 formats:
 
-|   Example amount | Parse options   |
-|-----------------:|-----------------|
-| `"1,234,567.89"` | *(defaults)*    |
-| `"1.234.567,89"` | `-x ',' -y '.'` |
-| `"1 234 567,89"` | `-x ',' -y ' '` |
-|  `"123_4567.89"` | `-y '_'`        |
+|   Example amount | Parse options                                                    |
+|-----------------:|------------------------------------------------------------------|
+| `"1,234,567.89"` | *(defaults)*                                                     |
+| `"1.234.567,89"` | `--amount-decimal-separator ',' --amount-grouping-separator '.'` |
+| `"1 234 567,89"` | `--amount-decimal-separator ',' --amount-grouping-separator ' '` |
+|  `"123_4567.89"` | `--amount-grouping-separator '_'`                                |
 
 ### Custom hooks to generate output transactions
 

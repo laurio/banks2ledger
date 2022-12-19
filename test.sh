@@ -14,8 +14,18 @@ LEDGER="test/data/ledger.dat"
 rm -f test/data/*.out
 
 echo -n "testing bb.csv... "
-bb src/banks2ledger/banks2ledger.clj -l $LEDGER -f test/data/bb.csv -b 3 -z 2 -D 'yyyy/MM/dd' \
-  -r 3 -m 4 -t '%9!%1 %6 %7 %8' -a 'Assets:BB Account' -c HUF >test/data/bb.out
+bb src/banks2ledger/banks2ledger.clj \
+  --ledger-file $LEDGER \
+  --csv-file test/data/bb.csv \
+  --csv-skip-header-lines 3 \
+  --csv-skip-trailer-lines 2 \
+  --date-format 'yyyy/MM/dd' \
+  --ref-col 3 \
+  --amount-col 4 \
+  --descr-col '%9!%1 %6 %7 %8' \
+  --account 'Assets:BB Account' \
+  --currency HUF \
+  >test/data/bb.out
 diff -u test/data/bb.out test/data/bb.ref-out >/dev/null
 export RC=$?
 if [ $RC -ne 0 ]; then
@@ -27,8 +37,17 @@ else
 fi
 
 echo -n "testing ica.csv... "
-bb src/banks2ledger/banks2ledger.clj -l $LEDGER -f test/data/ica.csv -j ';' -b 1 -m 4 -t '%1' \
-  -a 'Assets:ICA Account' -x "," -y " " >test/data/ica.out
+bb src/banks2ledger/banks2ledger.clj \
+  --ledger-file $LEDGER \
+  --csv-file test/data/ica.csv \
+  --csv-field-separator ';' \
+  --csv-skip-header-lines 1 \
+  --amount-col 4 \
+  --descr-col '%1' \
+  --account 'Assets:ICA Account' \
+  --amount-decimal-separator "," \
+  --amount-grouping-separator " " \
+  >test/data/ica.out
 diff -u test/data/ica.out test/data/ica.ref-out >/dev/null
 export RC=$?
 if [ $RC -ne 0 ]; then
@@ -40,8 +59,16 @@ else
 fi
 
 echo -n "testing seb.csv... "
-bb src/banks2ledger/banks2ledger.clj -l $LEDGER -f test/data/seb.csv -b 5 -r 2 -m 4 -t '%3' \
-  -k test/data/hooks.clj -a 'Assets:SEB Account' >test/data/seb.out
+bb src/banks2ledger/banks2ledger.clj \
+  --ledger-file $LEDGER \
+  --csv-file test/data/seb.csv \
+  --csv-skip-header-lines 5 \
+  --ref-col 2 \
+  --amount-col 4 \
+  --descr-col '%3' \
+  --hooks-file test/data/hooks.clj \
+  --account 'Assets:SEB Account' \
+  >test/data/seb.out
 diff -u test/data/seb.out test/data/seb.ref-out >/dev/null
 export RC=$?
 if [ $RC -ne 0 ]; then

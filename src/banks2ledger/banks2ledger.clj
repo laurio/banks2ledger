@@ -14,8 +14,8 @@
 
 
 ;; Set to true to include debug information in the generated output.
-;; To set this at runtime, add '-i true' to the argument list.
-(def +debug+ (atom false))
+;; To set this at runtime, add '--debug true' to the argument list.
+(def debug! (atom false))
 
 
 ;; Bump account's token counter for token
@@ -115,7 +115,7 @@
   [acc-maps descr account]
   (let [tokens (tokenize descr)
         p_tab  (p_table acc-maps tokens)]
-    (when @+debug+
+    (when @debug!
       (printf "; Deciding \"%s\" for %s%n", descr, account)
       (printf "; Tokens: ") (print tokens) (newline)
       (printf "; Account probabilities per token:%n")
@@ -388,17 +388,17 @@
 
 
 ;; hooks allow the user to generate custom output for certain entries
-(def +ledger-entry-hooks+ (atom nil))
+(def ledger-entry-hooks! (atom nil))
 
 
 (defn add-entry-hook
   [hook]
-  (swap! +ledger-entry-hooks+ #(conj % hook)))
+  (swap! ledger-entry-hooks! #(conj % hook)))
 
 
 (defn process-hooks!
   [entry]
-  (loop [hooks @+ledger-entry-hooks+]
+  (loop [hooks @ledger-entry-hooks!]
     (let [{:keys [formatter predicate] :as hook} (first hooks)]
       (if (nil? hook)
         (print-ledger-entry! (add-default-verifications entry))
@@ -467,7 +467,7 @@
     :default 2
     :parse-fn parse-long
     :validate [nat-int? "Must be >= 0"]]
-   ["-t" "--descr-col INTEGER" "Text (descriptor) column index specs (zero-based)"
+   ["-t" "--descr-col INDEX-SPECS" "Text (descriptor) column index specs (zero-based)"
     :default "%3"
     :validate [(complement string/blank?) "Must be specified"]]
    ["-x" "--amount-decimal-separator SEPARATOR" "Decimal sign character"
@@ -540,8 +540,8 @@
     (if exit-message
       (exit (if ok? 0 1) exit-message)
       (let [acc-maps (parse-ledger (:ledger-file options))]
-        (reset! +debug+ (:debug options))
-        (when @+debug+
+        (reset! debug! (:debug options))
+        (when @debug!
           (with-open [acc-maps-dump-file (io/writer "acc_maps_dump.txt")]
             (binding [*out* acc-maps-dump-file]
               (print-acc-maps acc-maps))))
