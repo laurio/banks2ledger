@@ -170,11 +170,11 @@ example demonstrating the problem.
 Feel free to open a pull request if you find a bug, or have a feature
 you would like to see included.
 
-There are several unit tests you can run via `bb test-runner.clj`. Make sure
+There are several unit tests you can run via `bb test.clj`. Make sure
 they don't break; also, add coverage for any new functionality you
 might add or regression tests for bugs you might fix.
 
-The command `bb test.clj` runs the unit tests, and if they are successful,
+The command `./test.clj` runs the unit tests, and if they are successful,
 proceeds with doing some end-to-end testing with "real" files. The
 input files are under `test/data/` along with the reference output,
 which is used to validate the results. The test script also shows the
