@@ -14,7 +14,9 @@
 (def test-results
   (t/run-tests 'banks2ledger.banks2ledger-test))
 
-(defn check-bb []
+
+(defn check-bb
+  []
   (print "testing bb.csv... ")
   (let [{:keys [exit out]}
         (shell {:out :string}
@@ -38,7 +40,9 @@
         (println "FAIL, inspect bb.out!")
         (System/exit exit)))))
 
-(defn check-ica []
+
+(defn check-ica
+  []
   (print "testing ica.csv... ")
   (let [{:keys [exit out]}
         (shell {:out :string}
@@ -61,7 +65,9 @@
         (println "FAIL, inspect ica.out!")
         (System/exit exit)))))
 
-(defn check-seb []
+
+(defn check-seb
+  []
   (print "testing seb.csv... ")
   (let [{:keys [exit out]}
         (shell {:out :string}
@@ -82,6 +88,7 @@
         (spit "test/data/seb.out" out)
         (println "FAIL, inspect seb.out!")
         (System/exit exit)))))
+
 
 (let [{:keys [fail error]} test-results
       issues-count (+ fail error)]
