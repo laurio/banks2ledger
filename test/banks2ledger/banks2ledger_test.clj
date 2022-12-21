@@ -14,30 +14,6 @@
       Locale)))
 
 
-;; Compare a and b for "equal enough" (used for testing float results)
-(defn f=
-  [a b]
-  (cond (or (seq? a) (vector? a))
-        (and (f= (first a) (first b))
-             (or (empty? (rest a))
-                 (empty? (rest b))
-                 (f= (rest a) (rest b))))
-        (every? float? [a b])
-        (< (abs (- a b)) 1E-6)
-        :else
-        (= a b)))
-
-
-;; Make sure our test predicate works before using it...
-(deftest test-f=
-  (testing "f="
-    (is (not (f= 1.0 1.0123456)))
-    (is (f= 1.0 1.0000001))
-    (is (f= [1.0 2.0] [1.0 1.9999997]))
-    (is (f= [:pi 3.1415926535 :lst [1.0 2.0]]
-            [:pi 3.141592654 :lst [1.0 1.9999997]]))))
-
-
 (deftest test-toktab-inc
   (testing "toktab-inc"
     (is (= (toktab-inc {} ["Account" "tok1"])
@@ -89,27 +65,27 @@
 
 (deftest test-p_belong
   (testing "p_belong"
-    (is (= (p_belong {"Acc1" {"tok1" 2, "tok2" 1}
-                      "Acc2" {"tok1" 2, "tok2" 1}} "tok1" "Acc1")
-           (float 1/2)))
-    (is (f= (p_belong {"Acc1" {"tok1" 1, "tok2" 2}
-                       "Acc2" {"tok1" 1, "tok2" 5}} "tok1" "Acc1")
-            0.5))
-    (is (f= (p_belong {"Acc1" {"tok1" 1, "tok2" 2}
-                       "Acc2" {"tok1" 2, "tok2" 5}
-                       "Acc3" {"tok1" 1, "tok2" 8}} "tok1" "Acc1")
-            0.25))))
+    (is (= 0.5
+           (p_belong {"Acc1" {"tok1" 2, "tok2" 1}
+                      "Acc2" {"tok1" 2, "tok2" 1}} "tok1" "Acc1")))
+    (is (= 0.5
+           (p_belong {"Acc1" {"tok1" 1, "tok2" 2}
+                      "Acc2" {"tok1" 1, "tok2" 5}} "tok1" "Acc1")))
+    (is (= 0.25
+           (p_belong {"Acc1" {"tok1" 1, "tok2" 2}
+                      "Acc2" {"tok1" 2, "tok2" 5}
+                      "Acc3" {"tok1" 1, "tok2" 8}} "tok1" "Acc1")))))
 
 
 (deftest test-best-accounts
   (testing "best-accounts"
-    (is (f= (best-accounts {"Acc1" {"tok1" 1, "tok2" 2}
-                            "Acc2" {"tok1" 2, "tok2" 8}
-                            "Acc3" {"tok2" 8}
-                            "Acc4" {"tok1" 5, "tok2" 5}} "tok1")
-            [[0.625 "Acc4"]
-             [0.25 "Acc2"]
-             [0.125 "Acc1"]]))))
+    (is (= [[0.625 "Acc4"]
+            [0.25 "Acc2"]
+            [0.125 "Acc1"]]
+           (best-accounts {"Acc1" {"tok1" 1, "tok2" 2}
+                           "Acc2" {"tok1" 2, "tok2" 8}
+                           "Acc3" {"tok2" 8}
+                           "Acc4" {"tok1" 5, "tok2" 5}} "tok1")))))
 
 
 (deftest test-split-ledger-entry
