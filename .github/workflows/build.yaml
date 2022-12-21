@@ -24,4 +24,4 @@ jobs:
           babashka-version: 1.0.168
 
       - name: Run tests
-        run: ./test.sh
+        run: bb ./test.clj
