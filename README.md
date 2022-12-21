@@ -80,6 +80,9 @@ read your main ledger file containing all those transactions that will
 form the basis of the Bayesian inference for newly created
 transactions.
 
+The program can also be compiled to a jar file by executing
+`./uberdeps/package.sh` in the projects root folder.
+
 ### CSV column mapping
 
 The default value for `--ref-col` (-1) means that in case you don't have a
