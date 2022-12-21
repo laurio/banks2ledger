@@ -7,8 +7,10 @@
     [clojure.string :as string]
     [clojure.tools.cli :as tools-cli])
   (:import
-    (java.text
-      SimpleDateFormat)
+    (java.time
+      LocalDate)
+    (java.time.format
+      DateTimeFormatter)
     (java.util
       Locale)))
 
@@ -205,9 +207,9 @@
 (defn convert-date
   [{:keys [date-format]} datestr]
   (.format
-    (SimpleDateFormat. "yyyy/MM/dd")
-    (.parse (SimpleDateFormat. date-format)
-            datestr)))
+    (LocalDate/parse datestr
+                     (DateTimeFormatter/ofPattern date-format))
+    (DateTimeFormatter/ofPattern "yyyy/MM/dd")))
 
 
 ;; Remove everything up to a number (an optional minus followed by a digit)
@@ -232,11 +234,11 @@
 
 ;; Convert CSV amount string - note the return value is still a string!
 (defn convert-amount
-  [options s]
+  [{:keys [amount-decimal-separator amount-grouping-separator]} s]
   (-> s
       remove-leading-garbage
-      (string/replace (str (:amount-grouping-separator options)) "")
-      (string/replace (str (:amount-decimal-separator options)) ".")
+      (string/replace (str amount-grouping-separator) "")
+      (string/replace (str amount-decimal-separator) ".")
       remove-trailing-garbage
       parse-double
       format-value))
