@@ -251,16 +251,16 @@
 
 
 (defn all-indices-1
-  [str sub pos acc]
-  (if-let [idx (string/index-of str sub pos)]
-    (all-indices-1 str sub (inc idx) (conj acc idx))
+  [s sub pos acc]
+  (if-let [idx (string/index-of s sub pos)]
+    (all-indices-1 s sub (inc idx) (conj acc idx))
     acc))
 
 
 ;; Return an array of all indices where sub starts within str
 (defn all-indices
-  [str sub]
-  (all-indices-1 str sub 0 []))
+  [s sub]
+  (all-indices-1 s sub 0 []))
 
 
 ;; Split string at the list of supplied indices and return a
