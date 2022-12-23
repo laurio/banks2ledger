@@ -349,15 +349,16 @@
     (when (seq ref)
       (printf "(%s) " ref))
     (println (:descr entry))
-    (doseq [verif verifs]
-      (let [comment (:comment verif)
-            account (:account verif)
-            amount  (:amount verif)]
-        (if (some? comment)
-          (printf "    ; %s%n" comment)
-          (if (nil? amount)
-            (printf "    %s%n" account)
-            (printf "    %-38s%s %s%n" account (:currency verif) amount)))))
+    (doseq [{:keys [account amount comment currency]} verifs]
+      (cond
+        comment
+        (printf "    ; %s%n" comment)
+
+        amount
+        (printf "    %-38s%s %s%n" account currency amount)
+
+        :else
+        (printf "    %s%n" account)))
     (println)))
 
 
