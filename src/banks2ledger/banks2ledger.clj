@@ -342,24 +342,22 @@
 ;; either a comment or an entry containing an account and
 ;; optionally an amount and currency.
 (defn print-ledger-entry!
-  [entry]
-  (let [ref    (:ref entry)
-        verifs (:verifs entry)]
-    (printf "%s " (:date entry))
-    (when (seq ref)
-      (printf "(%s) " ref))
-    (println (:descr entry))
-    (doseq [{:keys [account amount comment currency]} verifs]
-      (cond
-        comment
-        (printf "    ; %s%n" comment)
+  [{:keys [date descr ref verifs]}]
+  (printf "%s " date)
+  (when (seq ref)
+    (printf "(%s) " ref))
+  (println descr)
+  (doseq [{:keys [account amount comment currency]} verifs]
+    (cond
+      comment
+      (printf "    ; %s%n" comment)
 
-        amount
-        (printf "    %-38s%s %s%n" account currency amount)
+      amount
+      (printf "    %-38s%s %s%n" account currency amount)
 
-        :else
-        (printf "    %s%n" account)))
-    (println)))
+      :else
+      (printf "    %s%n" account)))
+  (println))
 
 
 ;; generate verifications for the default case
