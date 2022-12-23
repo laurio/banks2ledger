@@ -15,11 +15,6 @@
       Locale)))
 
 
-;; Set to true to include debug information in the generated output.
-;; To set this at runtime, add '--debug true' to the argument list.
-(def debug! (atom false))
-
-
 ;; Bump account's token counter for token
 (defn toktab-inc
   [toktab [account token]]
@@ -114,10 +109,10 @@
 ;; Return the most probable counter-accounts for given descr captured for
 ;; account. This account will be excluded from possible counter-accounts.
 (defn account-for-descr
-  [acc-maps descr account]
+  [acc-maps descr account debug?]
   (let [tokens (tokenize descr)
         p-tab  (p_table acc-maps tokens)]
-    (when @debug!
+    (when debug?
       (printf "; Deciding \"%s\" for %s%n" descr account)
       (printf "; Tokens: ") (print tokens) (newline)
       (printf "; Account probabilities per token:%n")
@@ -133,8 +128,8 @@
 
 
 (defn decide-account
-  [acc-maps descr account]
-  (let [accs (account-for-descr acc-maps descr account)]
+  [acc-maps descr account {:keys [debug]}]
+  (let [accs (account-for-descr acc-maps descr account debug)]
     (cond
       (empty? accs)
       "Unknown"
@@ -195,17 +190,6 @@
        (filter #(> (count %) 1))
        (map parse-ledger-entry)
        (reduce toktab-update {})))
-
-
-;; Produce a printout of the acc-maps passed as arg; useful for debugging
-(defn print-acc-maps
-  [acc-maps]
-  (doseq [acc (sort (keys acc-maps))]
-    (printf "'%s':%n" acc)
-    (let [acc-map (get acc-maps acc)]
-      (doseq [tok-count (sort-by second > acc-map)]
-        (printf " %6d  '%s'%n" (second tok-count) (first tok-count))))
-    (println)))
 
 
 ;; Convert date field from CSV format to Ledger entry format
@@ -419,10 +403,10 @@
 
 ;; generate a ledger entry -- invoke user-defined hooks
 (defn generate-ledger-entry!
-  [{:keys [account currency]}
+  [{:keys [account currency] :as options}
    acc-maps
    {:keys [date ref amount descr]}]
-  (let [counter-acc (decide-account acc-maps descr account)
+  (let [counter-acc (decide-account acc-maps descr account options)
         entry       {:account     account
                      :amount      amount
                      :counter-acc counter-acc
@@ -548,6 +532,19 @@
   (System/exit status))
 
 
+;; Produce a printout of the acc-maps passed as arg; useful for debugging
+(defn- debug-print-acc-maps
+  [acc-maps]
+  (with-open [acc-maps-dump-file (io/writer "acc_maps_dump.txt")]
+    (binding [*out* acc-maps-dump-file]
+      (doseq [acc (sort (keys acc-maps))]
+        (printf "'%s':%n" acc)
+        (let [acc-map (get acc-maps acc)]
+          (doseq [tok-count (sort-by second > acc-map)]
+            (printf " %6d  '%s'%n" (second tok-count) (first tok-count))))
+        (println)))))
+
+
 ;; Convert CSV of bank account transactions to corresponding ledger entries
 (defn -main
   [& args]
@@ -556,10 +553,7 @@
       (exit (if ok? 0 1) exit-message)
       (let [acc-maps (parse-ledger (:ledger-file options))]
         (when (:debug options)
-          (reset! debug! true)
-          (with-open [acc-maps-dump-file (io/writer "acc_maps_dump.txt")]
-            (binding [*out* acc-maps-dump-file]
-              (print-acc-maps acc-maps))))
+          (debug-print-acc-maps acc-maps))
         (some-> (:hooks-file options)
                 load-file)
         (with-open [reader (io/reader (:csv-file options)
