@@ -56,7 +56,7 @@
 ;; N_occur is the occurrence count of token among all tokens
 ;; recorded for account.
 ;; acc-maps is the output of parse-ledger.
-(defn n_occur
+(defn n-occur
   [acc-maps token account]
   (let [acc-table (get acc-maps account)]
     (get acc-table token 0)))
@@ -67,12 +67,12 @@
 ;; acc-maps is the output of parse-ledger.
 (defn p_belong
   [acc-maps token account]
-  (let [n_occ     (n_occur acc-maps token account)
-        n_occ_all (apply + (map (fn [acc] (n_occur acc-maps token acc))
+  (let [n-occ-all (apply + (map (fn [acc] (n-occur acc-maps token acc))
                                 (keys acc-maps)))]
-    (if (= 0 n_occ_all)
+    (if (zero? n-occ-all)
       0.0
-      (/ (float n_occ) n_occ_all))))
+      (let [n-occ (n-occur acc-maps token account)]
+        (/ (float n-occ) n-occ-all)))))
 
 
 ;; Combine probability values according to the Bayes theorem
@@ -96,7 +96,7 @@
   [acc-maps token]
   (->> (keys acc-maps)
        (map (fn [acc] [(p_belong acc-maps token acc) acc]))
-       (filter #(> (first %) 0.0))
+       (filter #(pos? (first %)))
        (sort-by first >)))
 
 
@@ -107,7 +107,7 @@
                         tokens)]
     (->> (keys acc-maps)
          (map (fn [acc] [(p_belong* acc-maps nz-toks acc) acc]))
-         (filter #(> (first %) 0.0))
+         (filter #(pos? (first %)))
          (sort-by first >))))
 
 
@@ -116,9 +116,9 @@
 (defn account-for-descr
   [acc-maps descr account]
   (let [tokens (tokenize descr)
-        p_tab  (p_table acc-maps tokens)]
+        p-tab  (p_table acc-maps tokens)]
     (when @debug!
-      (printf "; Deciding \"%s\" for %s%n", descr, account)
+      (printf "; Deciding \"%s\" for %s%n" descr account)
       (printf "; Tokens: ") (print tokens) (newline)
       (printf "; Account probabilities per token:%n")
       (doseq [tok tokens]
@@ -126,19 +126,24 @@
         (doseq [p (best-accounts acc-maps tok)]
           (printf ";     %40s %f%n" (second p) (first p))))
       (printf "; Combined probability table:%n")
-      (doseq [e p_tab]
+      (doseq [e p-tab]
         (printf ";     %40s %f%n" (second e) (first e))))
     (remove #(string/includes? (second %) account)
-            p_tab)))
+            p-tab)))
 
 
 (defn decide-account
   [acc-maps descr account]
   (let [accs (account-for-descr acc-maps descr account)]
     (cond
-      (empty? accs) "Unknown"
-      (= (ffirst accs) (first (second accs))) "Unknown"
-      :else (second (first accs)))))
+      (empty? accs)
+      "Unknown"
+
+      (= (ffirst accs) (first (second accs)))
+      "Unknown"
+
+      :else
+      (second (first accs)))))
 
 
 ;; Science up to this point. From here, only machinery.
@@ -249,13 +254,15 @@
   [s]
   (let [len (count s)]
     (cond
-      (< len 3) s
+      (< len 3)
+      s
 
       (or (and (= \' (first s)) (= \' (last s)))
           (and (= \" (first s)) (= \" (last s))))
       (subs s 1 (dec len))
 
-      :else s)))
+      :else
+      s)))
 
 
 (defn all-indices-1
@@ -319,21 +326,21 @@
 
 ;; Parse a line of CSV into a map with :date :ref :amount :descr
 (defn parse-csv-entry
-  [params cols]
-  (let [ref-col (:ref-col params)]
-    {:date   (convert-date params (nth cols (:date-col params)))
-     :ref    (when (nat-int? ref-col)
-               (unquote-string (nth cols ref-col)))
-     :amount (convert-amount params (nth cols (:amount-col params)))
-     :descr  (unquote-string (get-col cols (:descr-col params)))}))
+  [{:keys [amount-col date-col descr-col ref-col] :as options} cols]
+  {:date   (convert-date options (nth cols date-col))
+   :ref    (when (nat-int? ref-col)
+             (unquote-string (nth cols ref-col)))
+   :amount (convert-amount options (nth cols amount-col))
+   :descr  (unquote-string (get-col cols descr-col))})
 
 
 ;; Drop the configured number of header and trailer lines
 (defn drop-lines
-  [lines options]
+  [lines {:keys [csv-skip-header-lines
+                 csv-skip-trailer-lines]}]
   (->> lines
-       (drop (:csv-skip-header-lines options))
-       (drop-last (:csv-skip-trailer-lines options))))
+       (drop csv-skip-header-lines)
+       (drop-last csv-skip-trailer-lines)))
 
 
 ;; Parse input CSV into a list of maps
@@ -412,11 +419,17 @@
 
 ;; generate a ledger entry -- invoke user-defined hooks
 (defn generate-ledger-entry!
-  [{:keys [account currency]} acc-maps
+  [{:keys [account currency]}
+   acc-maps
    {:keys [date ref amount descr]}]
   (let [counter-acc (decide-account acc-maps descr account)
-        entry       {:date    date :ref ref :amount amount :currency currency
-                     :account account :counter-acc counter-acc :descr descr}]
+        entry       {:account     account
+                     :amount      amount
+                     :counter-acc counter-acc
+                     :currency    currency
+                     :date        date
+                     :descr       descr
+                     :ref         ref}]
     (process-hooks! entry)))
 
 
@@ -542,8 +555,8 @@
     (if exit-message
       (exit (if ok? 0 1) exit-message)
       (let [acc-maps (parse-ledger (:ledger-file options))]
-        (reset! debug! (:debug options))
-        (when @debug!
+        (when (:debug options)
+          (reset! debug! true)
           (with-open [acc-maps-dump-file (io/writer "acc_maps_dump.txt")]
             (binding [*out* acc-maps-dump-file]
               (print-acc-maps acc-maps))))

@@ -3,7 +3,7 @@
     [banks2ledger.banks2ledger :refer [all-indices best-accounts
                                        clip-string convert-amount
                                        convert-date format-colspec format-value
-                                       get-col n_occur p_belong
+                                       get-col n-occur p_belong
                                        parse-ledger-entry print-ledger-entry!
                                        split-by-indices split-ledger-entry tokenize
                                        toktab-inc toktab-update unquote-string]]
@@ -57,10 +57,10 @@
 
 (deftest test-n_occur
   (testing "n_occur"
-    (is (= (n_occur {"Acc1" {"tok1" 2, "tok2" 1, "tok3" 1}} "tok1" "Acc1") 2))
-    (is (= (n_occur {"Acc1" {"tok1" 2, "tok2" 1, "tok3" 1}} "tok2" "Acc1") 1))
-    (is (= (n_occur {"Acc1" {"tok1" 2, "tok2" 1, "tok3" 1}} "tok4" "Acc1") 0))
-    (is (= (n_occur {"Acc1" {"tok1" 2, "tok2" 1, "tok3" 1}} "tok" "Acc2") 0))))
+    (is (= (n-occur {"Acc1" {"tok1" 2, "tok2" 1, "tok3" 1}} "tok1" "Acc1") 2))
+    (is (= (n-occur {"Acc1" {"tok1" 2, "tok2" 1, "tok3" 1}} "tok2" "Acc1") 1))
+    (is (= (n-occur {"Acc1" {"tok1" 2, "tok2" 1, "tok3" 1}} "tok4" "Acc1") 0))
+    (is (= (n-occur {"Acc1" {"tok1" 2, "tok2" 1, "tok3" 1}} "tok" "Acc2") 0))))
 
 
 (deftest test-p_belong
