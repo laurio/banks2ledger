@@ -362,21 +362,17 @@
 
 ;; generate verifications for the default case
 (defn add-default-verifications
-  [entry]
-  (let [amount      (:amount entry)
-        currency    (:currency entry)
-        account     (:account entry)
-        counter-acc (:counter-acc entry)]
-    (conj entry
-          [:verifs (case (first amount)
-                     \- [{:account  counter-acc
-                          :amount   (subs amount 1)
-                          :currency currency}
-                         {:account account}]
-                     [{:account  account
-                       :amount   amount
-                       :currency currency}
-                      {:account counter-acc}])])))
+  [{:keys [account amount counter-acc currency] :as entry}]
+  (conj entry
+        [:verifs (case (first amount)
+                   \- [{:account  counter-acc
+                        :amount   (subs amount 1)
+                        :currency currency}
+                       {:account account}]
+                   [{:account  account
+                     :amount   amount
+                     :currency currency}
+                    {:account counter-acc}])]))
 
 
 ;; hooks allow the user to generate custom output for certain entries
