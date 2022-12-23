@@ -146,10 +146,10 @@
 ;; Clip string to the part before the given endmark
 ;; endmark is first arg to allow meaningful use of `partial'
 (defn clip-string
-  [endmark string]
-  (let [end-idx (.indexOf string endmark)]
-    (cond-> string
-      (not= -1 end-idx) (subs 0 end-idx))))
+  [endmark s]
+  (let [end-idx (string/index-of s endmark)]
+    (cond-> s
+      end-idx (subs 0 end-idx))))
 
 
 ;; Predicate for full comment lines in the ledger file
@@ -175,9 +175,10 @@
   (let [[first-line0 & rest-lines] entry-seq
         first-line (clip-string "|" first-line0)            ; N.B: this is non-standard (not part of ledger-cli)
         [date descr] (string/split first-line #" " 2)
-        toks       (tokenize descr)
         accs       (map (partial clip-string "  ") rest-lines)]
-    {:date date :toks toks :accs accs}))
+    {:accs accs
+     :date date
+     :toks (tokenize descr)}))
 
 
 ;; Read and parse a ledger file; return acc-maps
@@ -251,10 +252,9 @@
 
 (defn all-indices-1
   [str sub pos acc]
-  (let [idx (.indexOf str sub pos)]
-    (if (= -1 idx)
-      acc
-      (all-indices-1 str sub (inc idx) (conj acc idx)))))
+  (if-let [idx (string/index-of str sub pos)]
+    (all-indices-1 str sub (inc idx) (conj acc idx))
+    acc))
 
 
 ;; Return an array of all indices where sub starts within str
