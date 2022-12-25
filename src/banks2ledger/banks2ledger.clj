@@ -87,7 +87,7 @@
 
 
 ;; Return a list of [p_belong, account] pairs in descending order
-;; only accounts with nonzero probs are returned
+;; only accounts with nonzero probabilities are returned
 (defn best-accounts
   [acc-maps token]
   (->> (keys acc-maps)
