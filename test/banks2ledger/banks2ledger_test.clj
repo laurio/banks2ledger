@@ -3,7 +3,7 @@
     [banks2ledger.banks2ledger :refer [all-indices best-accounts
                                        clip-string convert-amount
                                        convert-date format-colspec format-value
-                                       get-col n-occur p_belong
+                                       get-col n-occur p-belong
                                        parse-ledger-entry print-ledger-entry!
                                        split-by-indices split-ledger-entry tokenize
                                        toktab-inc toktab-update unquote-string]]
@@ -55,24 +55,24 @@
            ["COOP" "KONSUM" "YY-MM-DD"]))))
 
 
-(deftest test-n_occur
-  (testing "n_occur"
+(deftest test-n-occur
+  (testing "n-occur"
     (is (= (n-occur {"Acc1" {"tok1" 2, "tok2" 1, "tok3" 1}} "tok1" "Acc1") 2))
     (is (= (n-occur {"Acc1" {"tok1" 2, "tok2" 1, "tok3" 1}} "tok2" "Acc1") 1))
     (is (= (n-occur {"Acc1" {"tok1" 2, "tok2" 1, "tok3" 1}} "tok4" "Acc1") 0))
     (is (= (n-occur {"Acc1" {"tok1" 2, "tok2" 1, "tok3" 1}} "tok" "Acc2") 0))))
 
 
-(deftest test-p_belong
-  (testing "p_belong"
+(deftest test-p-belong
+  (testing "p-belong"
     (is (= 0.5
-           (p_belong {"Acc1" {"tok1" 2, "tok2" 1}
+           (p-belong {"Acc1" {"tok1" 2, "tok2" 1}
                       "Acc2" {"tok1" 2, "tok2" 1}} "tok1" "Acc1")))
     (is (= 0.5
-           (p_belong {"Acc1" {"tok1" 1, "tok2" 2}
+           (p-belong {"Acc1" {"tok1" 1, "tok2" 2}
                       "Acc2" {"tok1" 1, "tok2" 5}} "tok1" "Acc1")))
     (is (= 0.25
-           (p_belong {"Acc1" {"tok1" 1, "tok2" 2}
+           (p-belong {"Acc1" {"tok1" 1, "tok2" 2}
                       "Acc2" {"tok1" 2, "tok2" 5}
                       "Acc3" {"tok1" 1, "tok2" 8}} "tok1" "Acc1")))))
 

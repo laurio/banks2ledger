@@ -60,10 +60,11 @@
 ;; P_belong is the probability that a transaction with
 ;; token in its descriptor belongs to account.
 ;; acc-maps is the output of parse-ledger.
-(defn p_belong
+(defn p-belong
   [acc-maps token account]
-  (let [n-occ-all (apply + (map (fn [acc] (n-occur acc-maps token acc))
-                                (keys acc-maps)))]
+  (let [n-occ-all (->> (keys acc-maps)
+                       (map (fn [acc] (n-occur acc-maps token acc)))
+                       (apply +))]
     (if (zero? n-occ-all)
       0.0
       (let [n-occ (n-occur acc-maps token account)]
@@ -79,9 +80,9 @@
 
 
 ;; Combined p_belong of given tokens for account
-(defn p_belong*
+(defn p-belong*
   [acc-maps tokens account]
-  (bayes* (map (fn [tok] (p_belong acc-maps tok account))
+  (bayes* (map (fn [tok] (p-belong acc-maps tok account))
                tokens)))
 
 
@@ -90,18 +91,18 @@
 (defn best-accounts
   [acc-maps token]
   (->> (keys acc-maps)
-       (map (fn [acc] [(p_belong acc-maps token acc) acc]))
+       (map (fn [acc] [(p-belong acc-maps token acc) acc]))
        (filter #(pos? (first %)))
        (sort-by first >)))
 
 
 ;; Print a table of combined probs for given tokens
-(defn p_table
+(defn p-table
   [acc-maps tokens]
   (let [nz-toks (filter #(pos? (count (best-accounts acc-maps %)))
                         tokens)]
     (->> (keys acc-maps)
-         (map (fn [acc] [(p_belong* acc-maps nz-toks acc) acc]))
+         (map (fn [acc] [(p-belong* acc-maps nz-toks acc) acc]))
          (filter #(pos? (first %)))
          (sort-by first >))))
 
@@ -111,7 +112,7 @@
 (defn account-for-descr
   [acc-maps descr account debug?]
   (let [tokens (tokenize descr)
-        p-tab  (p_table acc-maps tokens)]
+        p-tab  (p-table acc-maps tokens)]
     (when debug?
       (printf "; Deciding \"%s\" for %s%n" descr account)
       (printf "; Tokens: ") (print tokens) (newline)
