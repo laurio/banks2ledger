@@ -91,19 +91,22 @@
    only accounts with nonzero probabilities are returned"
   [acc-maps token]
   (->> (keys acc-maps)
-       (map (fn [acc] [(p-belong acc-maps token acc) acc]))
-       (filter #(pos? (first %)))
+       (map (fn [account] [(p-belong acc-maps token account) account]))
+       (filter (comp pos? first))
        (sort-by first >)))
 
 
 (defn p-table
   "Print a table of combined probs for given tokens"
   [acc-maps tokens]
-  (let [nz-toks (filter #(pos? (count (best-accounts acc-maps %)))
+  (let [nz-toks (filter #(->> %
+                              (best-accounts acc-maps)
+                              count
+                              pos?)
                         tokens)]
     (->> (keys acc-maps)
-         (map (fn [acc] [(p-belong* acc-maps nz-toks acc) acc]))
-         (filter #(pos? (first %)))
+         (map (fn [account] [(p-belong* acc-maps nz-toks account) account]))
+         (filter (comp pos? first))
          (sort-by first >))))
 
 
