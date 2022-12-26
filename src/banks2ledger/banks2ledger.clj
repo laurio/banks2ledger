@@ -15,8 +15,8 @@
       Locale)))
 
 
-;; Bump account's token counter for token
 (defn toktab-inc
+  "Bump account's token counter for token"
   [toktab [account token]]
   (let [acctab0 (get toktab account {})
         cnt     (get acctab0 token 0)
@@ -24,20 +24,20 @@
     (conj toktab [account acctab])))
 
 
-;; Update toktab by bumping all accounts in entry for all tokens
 (defn toktab-update
+  "Update toktab by bumping all accounts in entry for all tokens"
   [toktab {accs :accs toks :toks}]
   (reduce toktab-inc toktab (for [acc accs
                                   tok toks]
                               [acc tok])))
 
 
-;; Create tokens from string
-;; One string may become one or more tokens, returned as a seq
-;; - replace dates with degraded forms
-;; - Convert to uppercase
-;; - Split at '/' ',' and space
 (defn tokenize
+  "Create tokens from string
+   One string may become one or more tokens, returned as a seq
+   - replace dates with degraded forms
+   - Convert to uppercase
+   - Split at '/' ',' and space"
   [s]
   (filter seq
           (-> (reduce-kv string/replace
@@ -48,19 +48,19 @@
               (string/split #",|/| "))))
 
 
-;; N_occur is the occurrence count of token among all tokens
-;; recorded for account.
-;; acc-maps is the output of parse-ledger.
 (defn n-occur
+  "N_occur is the occurrence count of token among all tokens
+   recorded for account.
+   acc-maps is the output of parse-ledger."
   [acc-maps token account]
   (let [acc-table (get acc-maps account)]
     (get acc-table token 0)))
 
 
-;; P_belong is the probability that a transaction with
-;; token in its descriptor belongs to account.
-;; acc-maps is the output of parse-ledger.
 (defn p-belong
+  "P_belong is the probability that a transaction with
+   token in its descriptor belongs to account.
+   acc-maps is the output of parse-ledger."
   [acc-maps token account]
   (let [n-occ-all (->> (keys acc-maps)
                        (map (fn [acc] (n-occur acc-maps token acc)))
@@ -71,24 +71,24 @@
         (/ (float n-occ) n-occ-all)))))
 
 
-;; Combine probability values according to the Bayes theorem
 (defn bayes*
+  "Combine probability values according to the Bayes theorem"
   [probs]
   (let [prod-probs (apply * probs)
         prod-comps (apply * (map #(- 1.0 %) probs))]
     (/ prod-probs (+ prod-probs prod-comps))))
 
 
-;; Combined p_belong of given tokens for account
 (defn p-belong*
+  "Combined p_belong of given tokens for account"
   [acc-maps tokens account]
   (bayes* (map (fn [tok] (p-belong acc-maps tok account))
                tokens)))
 
 
-;; Return a list of [p_belong, account] pairs in descending order
-;; only accounts with nonzero probabilities are returned
 (defn best-accounts
+  "Return a list of [p_belong, account] pairs in descending order
+   only accounts with nonzero probabilities are returned"
   [acc-maps token]
   (->> (keys acc-maps)
        (map (fn [acc] [(p-belong acc-maps token acc) acc]))
@@ -96,8 +96,8 @@
        (sort-by first >)))
 
 
-;; Print a table of combined probs for given tokens
 (defn p-table
+  "Print a table of combined probs for given tokens"
   [acc-maps tokens]
   (let [nz-toks (filter #(pos? (count (best-accounts acc-maps %)))
                         tokens)]
@@ -107,9 +107,9 @@
          (sort-by first >))))
 
 
-;; Return the most probable counter-accounts for given descr captured for
-;; account. This account will be excluded from possible counter-accounts.
 (defn account-for-descr
+  "Return the most probable counter-accounts for given descr captured for
+   account. This account will be excluded from possible counter-accounts."
   [acc-maps descr account debug?]
   (let [tokens (tokenize descr)
         p-tab  (p-table acc-maps tokens)]
@@ -144,24 +144,25 @@
 
 ;; Science up to this point. From here, only machinery.
 
-;; Clip string to the part before the given endmark
-;; endmark is first arg to allow meaningful use of `partial'
+
 (defn clip-string
+  "Clip string to the part before the given endmark
+   endmark is first arg to allow meaningful use of `partial'"
   [endmark s]
   (let [end-idx (string/index-of s endmark)]
     (cond-> s
       end-idx (subs 0 end-idx))))
 
 
-;; Predicate for full comment lines in the ledger file
 (defn comment-line?
+  "Predicate for full comment lines in the ledger file"
   [line]
   (contains? #{\; \# \| \* \%}
              (first line)))
 
 
-;; Split ledger entry string to a sequence of separate lines
 (defn split-ledger-entry
+  "Split ledger entry string to a sequence of separate lines"
   [entry]
   (->> (string/split entry #"\r?\n")
        (remove comment-line?)
@@ -170,8 +171,8 @@
        (filter seq)))
 
 
-;; Parse a ledger entry from string to acc-map
 (defn parse-ledger-entry
+  "Parse a ledger entry from string to acc-map"
   [entry-seq]
   (let [[first-line0 & rest-lines] entry-seq
         first-line (clip-string "|" first-line0)            ; N.B: this is non-standard (not part of ledger-cli)
@@ -182,8 +183,8 @@
      :toks (tokenize descr)}))
 
 
-;; Read and parse a ledger file; return acc-maps
 (defn parse-ledger
+  "Read and parse a ledger file; return acc-maps"
   [filename]
   (->> (string/split (slurp filename) #"\r?\n\r?\n")
        (map string/trim)                                    ; remove odd newlines
@@ -194,9 +195,9 @@
        (reduce toktab-update {})))
 
 
-;; Convert date field from CSV format to Ledger entry format
 (let [ledger-entry-date-fmt (DateTimeFormatter/ofPattern "yyyy/MM/dd")]
   (defn convert-date
+    "Convert date field from CSV format to Ledger entry format"
     [date-string {:keys [date-format]}]
     (-> date-string
         (LocalDate/parse
@@ -204,8 +205,8 @@
         (.format ledger-entry-date-fmt))))
 
 
-;; Remove everything up to a number (an optional minus followed by a digit)
 (defn remove-leading-garbage
+  "Remove everything up to a number (an optional minus followed by a digit)"
   [s]
   (let [up-to-a-digit-re #".+?(?=-?\d)"]
     (string/replace-first (str " " s) up-to-a-digit-re "")))
@@ -218,14 +219,14 @@
        last))
 
 
-;; Convert a double value to a canonically formatted amount
 (defn format-value
+  "Convert a double value to a canonically formatted amount"
   [value]
   (String/format Locale/US "%,.2f" (into-array Double [value])))
 
 
-;; Convert CSV amount string - note the return value is still a string!
 (defn convert-amount
+  "Convert CSV amount string - note the return value is still a string!"
   [s {:keys [amount-decimal-separator amount-grouping-separator]}]
   (-> s
       remove-leading-garbage
@@ -236,8 +237,8 @@
       format-value))
 
 
-;; Remove quotes from start & end of the string, if both present
 (defn unquote-string
+  "Remove quotes from start & end of the string, if both present"
   [s]
   (let [len (count s)]
     (cond
@@ -259,16 +260,16 @@
     acc))
 
 
-;; Return an array of all indices where sub starts within str
 (defn all-indices
+  "Return an array of all indices where sub starts within str"
   [s sub]
   (all-indices-1 s sub 0 []))
 
 
-;; Split string at the list of supplied indices and return a
-;; list of substrings. Note that the sublists do not contain the
-;; characters at the indices, only those in between.
 (defn split-by-indices
+  "Split string at the list of supplied indices and return a
+   list of substrings. Note that the sublists do not contain the
+   characters at the indices, only those in between."
   [str ixs]
   (let [op-ixs (concat (list -1) ixs (list (count str)))]
     (map (fn [[s e]]
@@ -276,9 +277,9 @@
          (partition 2 1 op-ixs))))
 
 
-;; Render a colspec to an actual string based on cols;
-;; return whitespace-trimmed version.
 (defn format-colspec
+  "Render a colspec to an actual string based on cols;
+   return whitespace-trimmed version."
   [cols colspec]
   (-> colspec
       (string/replace #"\%(\d*)"
@@ -295,55 +296,55 @@
       (get-col-1 cols spec-list))))
 
 
-;; Get column data from cols according to colspec, which is a string
-;; similar to a printf format string but allowing alternatives to be
-;; used if an earlier spec results in an empty string.
-;; "%4" - get fourth column
-;; "%4 %5" - get fourth and fifth column separated by a space
-;; "%4!%1 %2 %3!%7" - fourth column by default, but if that is empty,
-;;   (contains only whitespace) concatenate the first three columns;
-;;   if that is empty, take the seventh column.
 (defn get-col
+  "Get column data from cols according to colspec, which is a string
+   similar to a printf format string but allowing alternatives to be
+   used if an earlier spec results in an empty string.
+   \"%4\" - get fourth column
+   \"%4 %5\" - get fourth and fifth column separated by a space
+   \"%4!%1 %2 %3!%7\" - fourth column by default, but if that is empty,
+   (contains only whitespace) concatenate the first three columns;
+   if that is empty, take the seventh column."
   [cols colspec]
   (let [delim-ixs (all-indices colspec "!")
         spec-list (split-by-indices colspec delim-ixs)]
     (get-col-1 cols spec-list)))
 
 
-;; Parse a line of CSV into a map with :date :ref :amount :descr
 (defn parse-csv-entry
-  [{:keys [amount-col date-col descr-col ref-col] :as options} cols]
-  {:date   (convert-date (nth cols date-col) options)
+  "Parse a line of CSV into a map with :amount :date :descr :ref"
+  [{:keys [amount-col date-col descr-col ref-col] :as options} csv-cols]
+  {:amount (convert-amount (nth csv-cols amount-col) options)
+   :date   (convert-date (nth csv-cols date-col) options)
+   :descr  (unquote-string (get-col csv-cols descr-col))
    :ref    (when (nat-int? ref-col)
-             (unquote-string (nth cols ref-col)))
-   :amount (convert-amount (nth cols amount-col) options)
-   :descr  (unquote-string (get-col cols descr-col))})
+             (unquote-string (nth csv-cols ref-col)))})
 
 
-;; Drop the configured number of header and trailer lines
 (defn drop-lines
-  [lines {:keys [csv-skip-header-lines
-                 csv-skip-trailer-lines]}]
-  (->> lines
+  "Drop the configured number of header and trailer lines"
+  [csv-lines {:keys [csv-skip-header-lines
+                     csv-skip-trailer-lines]}]
+  (->> csv-lines
        (drop csv-skip-header-lines)
        (drop-last csv-skip-trailer-lines)))
 
 
-;; Parse input CSV into a list of maps
 (defn parse-csv
+  "Parse input CSV into a list of maps"
   [reader {:keys [csv-field-separator] :as options}]
-  (->> options
-       (drop-lines (csv/read-csv reader
-                                 :separator csv-field-separator))
-       (map (partial parse-csv-entry options))))
+  (map (partial parse-csv-entry options)
+       (-> reader
+           (csv/read-csv :separator csv-field-separator)
+           (drop-lines options))))
 
 
-;; print a ledger entry to *out*
-;; An entry has a list of verifications (transaction entries),
-;; each of them will produce a line of output. Each line is
-;; either a comment or an entry containing an account and
-;; optionally an amount and currency.
 (defn print-ledger-entry!
+  "print a ledger entry to *out*
+   An entry has a list of verifications (transaction entries),
+   each of them will produce a line of output. Each line is
+   either a comment or an entry containing an account and
+   optionally an amount and currency."
   [{:keys [date descr ref verifs]}]
   (printf "%s " date)
   (when (seq ref)
@@ -362,8 +363,8 @@
   (println))
 
 
-;; generate verifications for the default case
 (defn add-default-verifications
+  "generate verifications for the default case"
   [{:keys [account amount counter-acc currency] :as entry}]
   (conj entry
         [:verifs (case (first amount)
@@ -398,8 +399,8 @@
           (recur (rest hooks)))))))
 
 
-;; generate a ledger entry -- invoke user-defined hooks
 (defn generate-ledger-entry!
+  "generate a ledger entry -- invoke user-defined hooks"
   [{:keys [account currency] :as options}
    acc-maps
    {:keys [date ref amount descr]}]
@@ -505,8 +506,8 @@
 
 (defn validate-args
   "Validate command line arguments. Either return a map indicating the program
-  should exit (with an error message, and optional ok status), or a map
-  indicating the action the program should take and the options provided."
+   should exit (with an error message, and optional ok status), or a map
+   indicating the action the program should take and the options provided."
   [args]
   (let [{:keys [options errors summary]} (tools-cli/parse-opts args cli-options)]
     (cond
@@ -529,8 +530,8 @@
   (System/exit status))
 
 
-;; Produce a printout of the acc-maps passed as arg; useful for debugging
 (defn- debug-print-acc-maps
+  "Produce a printout of the acc-maps passed as arg; useful for debugging"
   [acc-maps]
   (with-open [acc-maps-dump-file (io/writer "acc_maps_dump.txt")]
     (binding [*out* acc-maps-dump-file]
@@ -542,8 +543,8 @@
         (println)))))
 
 
-;; Convert CSV of bank account transactions to corresponding ledger entries
 (defn -main
+  "Convert CSV of bank account transactions to corresponding ledger entries"
   [& args]
   (let [{:keys [options exit-message ok?]} (validate-args args)]
     (if exit-message
