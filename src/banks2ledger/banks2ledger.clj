@@ -195,12 +195,13 @@
 
 
 ;; Convert date field from CSV format to Ledger entry format
-(defn convert-date
-  [{:keys [date-format]} datestr]
-  (.format
-    (LocalDate/parse datestr
-                     (DateTimeFormatter/ofPattern date-format))
-    (DateTimeFormatter/ofPattern "yyyy/MM/dd")))
+(let [to-date-fmt (DateTimeFormatter/ofPattern "yyyy/MM/dd")]
+  (defn convert-date
+    [{:keys [date-format]} date-string]
+    (-> date-string
+        (LocalDate/parse
+          (DateTimeFormatter/ofPattern date-format))
+        (.format to-date-fmt))))
 
 
 ;; Remove everything up to a number (an optional minus followed by a digit)
