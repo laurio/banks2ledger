@@ -393,7 +393,9 @@
     (let [{:keys [formatter predicate] :as hook} (first hooks)]
       (cond
         (nil? hook)
-        (print-ledger-entry! (add-default-verifications entry))
+        (-> entry
+            add-default-verifications
+            print-ledger-entry!)
 
         (predicate entry)
         (when formatter
