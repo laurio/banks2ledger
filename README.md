@@ -1,6 +1,7 @@
 # banks2ledger
 
 ![Build Status](https://github.com/laurio/banks2ledger/actions/workflows/build.yaml/badge.svg)
+<a href="https://babashka.org" rel="nofollow"><img src="https://github.com/babashka/babashka/raw/master/logo/badge.svg" alt="bb compatible" style="max-width: 100%;"></a>
 
 A tool to convert bank account CSV files to ledger. Guesses account
 name via simple Bayesian inference based on your existing ledger file.
