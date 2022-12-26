@@ -195,13 +195,13 @@
 
 
 ;; Convert date field from CSV format to Ledger entry format
-(let [to-date-fmt (DateTimeFormatter/ofPattern "yyyy/MM/dd")]
+(let [ledger-entry-date-fmt (DateTimeFormatter/ofPattern "yyyy/MM/dd")]
   (defn convert-date
-    [{:keys [date-format]} date-string]
+    [date-string {:keys [date-format]}]
     (-> date-string
         (LocalDate/parse
           (DateTimeFormatter/ofPattern date-format))
-        (.format to-date-fmt))))
+        (.format ledger-entry-date-fmt))))
 
 
 ;; Remove everything up to a number (an optional minus followed by a digit)
@@ -226,7 +226,7 @@
 
 ;; Convert CSV amount string - note the return value is still a string!
 (defn convert-amount
-  [{:keys [amount-decimal-separator amount-grouping-separator]} s]
+  [s {:keys [amount-decimal-separator amount-grouping-separator]}]
   (-> s
       remove-leading-garbage
       (string/replace (str amount-grouping-separator) "")
@@ -313,10 +313,10 @@
 ;; Parse a line of CSV into a map with :date :ref :amount :descr
 (defn parse-csv-entry
   [{:keys [amount-col date-col descr-col ref-col] :as options} cols]
-  {:date   (convert-date options (nth cols date-col))
+  {:date   (convert-date (nth cols date-col) options)
    :ref    (when (nat-int? ref-col)
              (unquote-string (nth cols ref-col)))
-   :amount (convert-amount options (nth cols amount-col))
+   :amount (convert-amount (nth cols amount-col) options)
    :descr  (unquote-string (get-col cols descr-col))})
 
 
