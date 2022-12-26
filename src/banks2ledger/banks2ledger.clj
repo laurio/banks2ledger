@@ -36,8 +36,8 @@
   "Create tokens from string
    One string may become one or more tokens, returned as a seq
    - replace dates with degraded forms
-   - Convert to uppercase
-   - Split at '/' ',' and space"
+   - convert to uppercase
+   - split at '/' ',' and space"
   [s]
   (filter seq
           (-> (reduce-kv string/replace
@@ -391,12 +391,16 @@
   [entry]
   (loop [hooks @ledger-entry-hooks!]
     (let [{:keys [formatter predicate] :as hook} (first hooks)]
-      (if (nil? hook)
+      (cond
+        (nil? hook)
         (print-ledger-entry! (add-default-verifications entry))
-        (if (predicate entry)
-          (when formatter
-            (formatter entry))
-          (recur (rest hooks)))))))
+
+        (predicate entry)
+        (when formatter
+          (formatter entry))
+
+        :else
+        (recur (rest hooks))))))
 
 
 (defn generate-ledger-entry!
