@@ -9,19 +9,24 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: 0918nobita/setup-cljstyle@v0.5.4
-      - run: cljstyle check
-
-      - uses: DeLaGuardo/setup-clj-kondo@master
+      - name: Install clojure tools
+        uses: DeLaGuardo/setup-clojure@master
         with:
-          version: '2022.12.10'
+          bb: latest
+          clj-kondo: latest
+          cljstyle: latest
+
+      - name: Get clj-kondo version
+        run: clj-kondo --version
+
+      - name: Get cljstyle version
+        run: cljstyle version
+
+      - name: Check code formatting
+        run: cljstyle check
+
       - name: Run checks
         run: clj-kondo --lint src
-
-      - name: Setup Babashka
-        uses: turtlequeue/setup-babashka@v1.5.0
-        with:
-          babashka-version: 1.0.168
 
       - name: Run tests
         run: bb ./test.clj
