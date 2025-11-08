@@ -4,9 +4,12 @@
     [clojure.data.csv :as csv]
     [clojure.string :as string])
   (:import
-    (java.time LocalDate)
-    (java.time.format DateTimeFormatter)
-    (java.util Locale)))
+    (java.time
+      LocalDate)
+    (java.time.format
+      DateTimeFormatter)
+    (java.util
+      Locale)))
 
 
 (defn clip-string

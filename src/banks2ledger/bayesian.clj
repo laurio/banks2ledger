@@ -1,6 +1,7 @@
 (ns banks2ledger.bayesian
   "Bayesian inference for account classification based on transaction descriptors."
-  (:require [clojure.string :as string]))
+  (:require
+    [clojure.string :as string]))
 
 
 (defn toktab-inc

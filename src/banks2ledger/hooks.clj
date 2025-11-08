@@ -1,6 +1,7 @@
 (ns banks2ledger.hooks
   "Hooks system for customizing ledger entry generation."
-  (:require [banks2ledger.ledger-parser :as ledger]))
+  (:require
+    [banks2ledger.ledger-parser :as ledger]))
 
 
 ;; hooks allow the user to generate custom output for certain entries
