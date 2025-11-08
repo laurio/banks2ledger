@@ -1,4 +1,8 @@
-(ns banks2ledger.banks2ledger)
+(ns banks2ledger.banks2ledger
+  (:require
+    [banks2ledger.bayesian :refer [tokenize]]
+    [banks2ledger.hooks :refer [add-entry-hook]]
+    [banks2ledger.ledger-parser :refer [print-ledger-entry!]]))
 
 
 ;; Define a helper function to define hooks for income transactions,

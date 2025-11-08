@@ -1,4 +1,6 @@
-{:tasks
+{:paths ["src"]
+
+ :tasks
  ;from: https://blog.michielborkent.nl/babashka-test-runner.html
  {test:bb {:extra-paths      ["src" "test"]
            :extra-deps       {io.github.cognitect-labs/test-runner

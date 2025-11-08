@@ -1,12 +1,12 @@
 (ns banks2ledger.banks2ledger-test
   (:require
-    [banks2ledger.banks2ledger :refer [all-indices best-accounts
-                                       clip-string convert-amount
-                                       convert-date format-colspec format-value
-                                       get-col n-occur p-belong
-                                       parse-ledger-entry print-ledger-entry!
-                                       split-by-indices split-ledger-entry tokenize
-                                       toktab-inc toktab-update unquote-string]]
+    [banks2ledger.bayesian :refer [best-accounts n-occur p-belong
+                                    tokenize toktab-inc toktab-update]]
+    [banks2ledger.csv-parser :refer [all-indices clip-string convert-amount
+                                      convert-date format-colspec format-value
+                                      get-col split-by-indices unquote-string]]
+    [banks2ledger.ledger-parser :refer [parse-ledger-entry print-ledger-entry!
+                                         split-ledger-entry]]
     [clojure.string :as string]
     [clojure.test :refer [deftest is testing]])
   (:import
