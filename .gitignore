@@ -12,3 +12,6 @@ pom.xml.asc
 .hg/
 /.idea
 *.iml
+.clj-kondo/
+acc_maps_dump.txt
+.claude/
