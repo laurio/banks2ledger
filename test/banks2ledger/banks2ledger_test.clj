@@ -1,5 +1,6 @@
 (ns banks2ledger.banks2ledger-test
   (:require
+    [banks2ledger.banks2ledger :refer [valid-descr-col-spec?]]
     [banks2ledger.bayesian :refer [best-accounts n-occur p-belong
                                    tokenize toktab-inc toktab-update]]
     [banks2ledger.csv-parser :refer [all-indices clip-string convert-amount
@@ -560,3 +561,29 @@
       (is (= "1,234.56" (:amount result)) "Amount should be parsed correctly")
       (is (= "Test Transaction" (:descr result)) "Description should be extracted")
       (is (= "REF123" (:ref result)) "Reference should be extracted"))))
+
+
+;; Tests for descr-col spec validation
+
+(deftest test-valid-descr-col-spec
+  (testing "valid-descr-col-spec? accepts valid specs"
+    (is (valid-descr-col-spec? "%0") "Single column reference")
+    (is (valid-descr-col-spec? "%1") "Different column reference")
+    (is (valid-descr-col-spec? "%123") "Large column number")
+    (is (valid-descr-col-spec? "%0 %1") "Multiple columns with space")
+    (is (valid-descr-col-spec? "%0 %1 %2") "Three columns")
+    (is (valid-descr-col-spec? "%1!%2") "Alternative specs")
+    (is (valid-descr-col-spec? "%4!%1 %2 %3!%7") "Complex alternatives")
+    (is (valid-descr-col-spec? "prefix %0 suffix") "Column with literal text")
+    (is (valid-descr-col-spec? "%0-%1") "Columns with delimiter")))
+
+
+(deftest test-invalid-descr-col-spec
+  (testing "valid-descr-col-spec? rejects invalid specs"
+    (is (not (valid-descr-col-spec? "")) "Empty string")
+    (is (not (valid-descr-col-spec? "   ")) "Whitespace only")
+    (is (not (valid-descr-col-spec? "no refs")) "No column references")
+    (is (not (valid-descr-col-spec? "%-5")) "Negative column index")
+    (is (not (valid-descr-col-spec? "%abc")) "Non-numeric column reference")
+    (is (not (valid-descr-col-spec? "%")) "Incomplete column reference")
+    (is (not (valid-descr-col-spec? "just text")) "Text without column refs")))

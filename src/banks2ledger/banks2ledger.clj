@@ -17,6 +17,25 @@
   (.exists (io/file filepath)))
 
 
+(defn valid-descr-col-spec?
+  "Validate that a descr-col spec string only contains valid column references.
+   Valid format: %N where N is a non-negative integer, with optional alternatives
+   separated by ! and literal text between column references."
+  [spec]
+  (if (string/blank? spec)
+    false
+    (let [;; Extract all column references like %0, %1, %123, etc.
+          col-refs (re-seq #"%(\d+)" spec)]
+      ;; Check that we found at least one column reference
+      (and (seq col-refs)
+           ;; Ensure all extracted numbers are valid (non-negative integers)
+           (every? (fn [[_ num-str]]
+                     (try
+                       (>= (parse-long num-str) 0)
+                       (catch Exception _ false)))
+                   col-refs)))))
+
+
 (defn- debug-print-acc-maps
   "Produce a printout of the acc-maps passed as arg; useful for debugging"
   [acc-maps]
@@ -92,7 +111,7 @@
     :validate [nat-int? "Must be >= 0"]]
    ["-t" "--descr-col INDEX-SPECS" "Text (descriptor) column index specs (zero-based)"
     :default "%3"
-    :validate [(complement string/blank?) "Must be specified"]]
+    :validate [valid-descr-col-spec? "Must contain valid column references (e.g., %0, %1, %0 %1, %2!%3)"]]
    ["-x" "--amount-decimal-separator SEPARATOR" "Decimal sign character"
     :default "."
     :parse-fn first
