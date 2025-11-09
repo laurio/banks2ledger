@@ -292,6 +292,26 @@
         "A number with custom spacing for groups")))
 
 
+(deftest test-convert-amount-error-cases
+  (testing "convert-amount handles nil and invalid inputs"
+    (is (thrown-with-msg? NumberFormatException #"Amount column value is nil"
+          (convert-amount nil {:amount-decimal-separator \.
+                               :amount-grouping-separator \,}))
+        "Nil input should throw with clear message")
+    (is (thrown-with-msg? NumberFormatException #"No valid number found"
+          (convert-amount "" {:amount-decimal-separator \.
+                              :amount-grouping-separator \,}))
+        "Empty string should throw")
+    (is (thrown-with-msg? NumberFormatException #"No valid number found"
+          (convert-amount "abc xyz" {:amount-decimal-separator \.
+                                     :amount-grouping-separator \,}))
+        "Text without numbers should throw")
+    (is (thrown-with-msg? NumberFormatException #"No valid number found"
+          (convert-amount "   " {:amount-decimal-separator \.
+                                 :amount-grouping-separator \,}))
+        "Whitespace-only should throw")))
+
+
 (deftest test-unquote-string
   (testing "unquote-string"
     (is (= (unquote-string "abcdef") "abcdef"))

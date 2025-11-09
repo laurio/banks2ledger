@@ -119,6 +119,8 @@
 (defn convert-amount
   "Convert CSV amount string - note the return value is still a string!"
   [s {:keys [amount-decimal-separator amount-grouping-separator]}]
+  (when (nil? s)
+    (throw (NumberFormatException. "Amount column value is nil")))
   (let [cleaned (-> s
                     remove-leading-garbage
                     (string/replace (str amount-grouping-separator) "")
