@@ -68,7 +68,13 @@
   [cols colspec]
   (-> colspec
       (string/replace #"\%(\d*)"
-                      #(unquote-string (nth cols (parse-long (second %)))))
+                      (fn [[_ num-str]]
+                        (let [col-idx (parse-long num-str)
+                              col-count (count cols)]
+                          (when (>= col-idx col-count)
+                            (throw (IndexOutOfBoundsException.
+                                     (str "descr-col reference %" col-idx " but row only has " col-count " column(s)"))))
+                          (unquote-string (nth cols col-idx)))))
       string/trim))
 
 
@@ -155,15 +161,19 @@
                (unquote-string (nth csv-cols ref-col)))}
     (catch IndexOutOfBoundsException e
       (let [col-count (count csv-cols)
-            {:keys [amount-col date-col ref-col]} options]
+            {:keys [amount-col date-col ref-col]} options
+            error-msg (.getMessage e)]
         (throw (ex-info
                  (str "CSV row " row-num ": Column index out of bounds. "
-                      "Row has " col-count " column(s), but tried to access "
-                      "column " (.getMessage e) ". "
-                      "Check --date-col (" date-col "), "
-                      "--amount-col (" amount-col "), "
-                      (when (nat-int? ref-col) (str "--ref-col (" ref-col "), "))
-                      "and --descr-col settings.")
+                      (if (and error-msg (re-find #"descr-col reference" error-msg))
+                        ;; Specific descr-col error
+                        (str error-msg ". Check --descr-col setting.")
+                        ;; Generic column error
+                        (str "Row has " col-count " column(s), but tried to access column. "
+                             "Check --date-col (" date-col "), "
+                             "--amount-col (" amount-col "), "
+                             (when (nat-int? ref-col) (str "--ref-col (" ref-col "), "))
+                             "and --descr-col settings.")))
                  {:type :column-out-of-bounds
                   :row row-num
                   :column-count col-count

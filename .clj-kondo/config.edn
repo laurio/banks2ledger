@@ -1,0 +1,3 @@
+{:lint-as       {clojure.test.check.generators/let clojure.core/let}
+ :skip-comments true
+ :output        {:exclude-files ["test/data/hooks.clj"]}}
