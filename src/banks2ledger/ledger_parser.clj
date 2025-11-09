@@ -38,13 +38,24 @@
 (defn parse-ledger
   "Read and parse a ledger file; return acc-maps"
   [filename]
-  (->> (string/split (slurp filename) #"\r?\n\r?\n")
-       (map string/trim)                                    ; remove odd newlines
-       (filter seq)
-       (map split-ledger-entry)
-       (filter #(> (count %) 1))
-       (map parse-ledger-entry)
-       (reduce bayesian/toktab-update {})))
+  (try
+    (->> (string/split (slurp filename) #"\r?\n\r?\n")
+         (map string/trim)                                    ; remove odd newlines
+         (filter seq)
+         (map split-ledger-entry)
+         (filter #(> (count %) 1))
+         (map parse-ledger-entry)
+         (reduce bayesian/toktab-update {}))
+    (catch java.io.FileNotFoundException e
+      (throw (ex-info (str "Failed to read ledger file: " (.getMessage e))
+                      {:type :file-not-found
+                       :file filename}
+                      e)))
+    (catch java.io.IOException e
+      (throw (ex-info (str "Error reading ledger file '" filename "': " (.getMessage e))
+                      {:type :io-error
+                       :file filename}
+                      e)))))
 
 
 (defn print-ledger-entry!

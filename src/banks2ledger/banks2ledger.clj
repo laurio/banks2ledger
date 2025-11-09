@@ -9,7 +9,13 @@
     [banks2ledger.ledger-parser :as ledger]
     [clojure.java.io :as io]
     [clojure.string :as string]
-    [clojure.tools.cli :as tools-cli]))
+    [clojure.tools.cli :as tools-cli])
+  (:import
+    (clojure.lang
+      ExceptionInfo)
+    (java.io
+      FileNotFoundException
+      IOException)))
 
 
 (defn filepath-exists?
@@ -39,14 +45,19 @@
 (defn- debug-print-acc-maps
   "Produce a printout of the acc-maps passed as arg; useful for debugging"
   [acc-maps]
-  (with-open [acc-maps-dump-file (io/writer "acc_maps_dump.txt")]
-    (binding [*out* acc-maps-dump-file]
-      (doseq [acc (sort (keys acc-maps))]
-        (printf "'%s':%n" acc)
-        (let [acc-map (get acc-maps acc)]
-          (doseq [tok-count (sort-by second > acc-map)]
-            (printf " %6d  '%s'%n" (second tok-count) (first tok-count))))
-        (println)))))
+  (try
+    (with-open [acc-maps-dump-file (io/writer "acc_maps_dump.txt")]
+      (binding [*out* acc-maps-dump-file]
+        (doseq [acc (sort (keys acc-maps))]
+          (printf "'%s':%n" acc)
+          (let [acc-map (get acc-maps acc)]
+            (doseq [tok-count (sort-by second > acc-map)]
+              (printf " %6d  '%s'%n" (second tok-count) (first tok-count))))
+          (println))))
+    (catch IOException e
+      (binding [*out* *err*]
+        (println "Warning: Failed to write debug output file 'acc_maps_dump.txt':" (.getMessage e))
+        (println "Continuing without debug output...")))))
 
 
 (defn generate-ledger-entry!
@@ -185,16 +196,49 @@
   (let [{:keys [options exit-message ok?]} (validate-args args)]
     (if exit-message
       (exit (if ok? 0 1) exit-message)
-      (let [acc-maps (ledger/parse-ledger (:ledger-file options))]
-        (when (:debug options)
-          (debug-print-acc-maps acc-maps))
-        (some-> (:hooks-file options)
-                load-file)
-        (with-open [reader (io/reader (:csv-file options)
-                                      :encoding (:csv-file-encoding options))]
-          (run! (partial generate-ledger-entry! options acc-maps)
-                (csv-parser/parse-csv reader options))
-          (flush))))))
+      (try
+        (let [acc-maps (ledger/parse-ledger (:ledger-file options))]
+          (when (:debug options)
+            (debug-print-acc-maps acc-maps))
+          (when-let [hooks-file (:hooks-file options)]
+            (try
+              (load-file hooks-file)
+              (catch FileNotFoundException e
+                (throw (ex-info (str "Failed to load hooks file: " (.getMessage e))
+                                {:type :hooks-file-not-found
+                                 :file hooks-file}
+                                e)))
+              (catch Exception e
+                (throw (ex-info (str "Error loading hooks file '" hooks-file "': " (.getMessage e))
+                                {:type :hooks-load-error
+                                 :file hooks-file}
+                                e)))))
+          (try
+            (with-open [reader (io/reader (:csv-file options)
+                                          :encoding (:csv-file-encoding options))]
+              (run! (partial generate-ledger-entry! options acc-maps)
+                    (csv-parser/parse-csv reader options))
+              (flush))
+            (catch FileNotFoundException e
+              (throw (ex-info (str "Failed to read CSV file: " (.getMessage e))
+                              {:type :csv-file-not-found
+                               :file (:csv-file options)}
+                              e)))
+            (catch IOException e
+              (throw (ex-info (str "Error reading CSV file '" (:csv-file options) "': " (.getMessage e))
+                              {:type :csv-io-error
+                               :file (:csv-file options)}
+                              e)))))
+        (catch ExceptionInfo e
+          ;; Re-throw our own ex-info exceptions
+          (throw e))
+        (catch Exception e
+          ;; Catch any other unexpected exceptions
+          (binding [*out* *err*]
+            (println "Unexpected error:" (.getMessage e))
+            (when-let [cause (.getCause e)]
+              (println "Caused by:" (.getMessage cause))))
+          (System/exit 1))))))
 
 
 (when (= *file* (System/getProperty "babashka.file"))
