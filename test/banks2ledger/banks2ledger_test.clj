@@ -1,6 +1,6 @@
 (ns banks2ledger.banks2ledger-test
   (:require
-    [banks2ledger.banks2ledger :refer [valid-descr-col-spec?]]
+    [banks2ledger.banks2ledger :refer [cli-options valid-descr-col-spec?]]
     [banks2ledger.bayesian :refer [best-accounts n-occur p-belong
                                    tokenize toktab-inc toktab-update]]
     [banks2ledger.csv-parser :refer [all-indices clip-string convert-amount
@@ -10,7 +10,8 @@
     [banks2ledger.ledger-parser :refer [parse-ledger-entry print-ledger-entry!
                                         split-ledger-entry]]
     [clojure.string :as string]
-    [clojure.test :refer [deftest is testing]])
+    [clojure.test :refer [deftest is testing]]
+    [clojure.tools.cli :as tools-cli])
   (:import
     (clojure.lang
       ExceptionInfo)
@@ -595,3 +596,26 @@
     (is (not (valid-descr-col-spec? "%abc")) "Non-numeric column reference")
     (is (not (valid-descr-col-spec? "%")) "Incomplete column reference")
     (is (not (valid-descr-col-spec? "just text")) "Text without column refs")))
+
+
+;; Tests for --debug option validation
+
+(deftest test-debug-option-valid-values
+  (testing "--debug option accepts valid boolean strings"
+    (let [result-true (tools-cli/parse-opts ["--debug" "true"] cli-options)
+          result-false (tools-cli/parse-opts ["--debug" "false"] cli-options)]
+      (is (nil? (:errors result-true)) "No errors for 'true'")
+      (is (true? (get-in result-true [:options :debug])) "Parsed as boolean true")
+      (is (nil? (:errors result-false)) "No errors for 'false'")
+      (is (false? (get-in result-false [:options :debug])) "Parsed as boolean false"))))
+
+
+(deftest test-debug-option-invalid-values
+  (testing "--debug option rejects invalid values"
+    (let [test-cases ["maybe" "yes" "no" "1" "0" "TRUE" "FALSE" "" "xyz"]]
+      (doseq [invalid-value test-cases]
+        (let [result (tools-cli/parse-opts ["--debug" invalid-value] cli-options)]
+          (is (seq (:errors result))
+              (str "Should reject invalid value: " (pr-str invalid-value)))
+          (is (some #(re-find #"Must be 'true' or 'false'" %) (:errors result))
+              (str "Error message for " (pr-str invalid-value))))))))
