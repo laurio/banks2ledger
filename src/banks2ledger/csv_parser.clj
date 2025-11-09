@@ -7,7 +7,8 @@
     (java.time
       LocalDate)
     (java.time.format
-      DateTimeFormatter)
+      DateTimeFormatter
+      DateTimeParseException)
     (java.util
       Locale)))
 
@@ -118,13 +119,16 @@
 (defn convert-amount
   "Convert CSV amount string - note the return value is still a string!"
   [s {:keys [amount-decimal-separator amount-grouping-separator]}]
-  (-> s
-      remove-leading-garbage
-      (string/replace (str amount-grouping-separator) "")
-      (string/replace (str amount-decimal-separator) ".")
-      remove-trailing-garbage
-      parse-double
-      format-value))
+  (let [cleaned (-> s
+                    remove-leading-garbage
+                    (string/replace (str amount-grouping-separator) "")
+                    (string/replace (str amount-decimal-separator) ".")
+                    remove-trailing-garbage)]
+    (when (nil? cleaned)
+      (throw (NumberFormatException. (str "No valid number found in: '" s "'"))))
+    (-> cleaned
+        parse-double
+        format-value)))
 
 
 (let [ledger-entry-date-fmt (DateTimeFormatter/ofPattern "yyyy/MM/dd")]
@@ -138,13 +142,74 @@
 
 
 (defn parse-csv-entry
-  "Parse a line of CSV into a map with :amount :date :descr :ref"
-  [{:keys [amount-col date-col descr-col ref-col] :as options} csv-cols]
-  {:amount (convert-amount (nth csv-cols amount-col) options)
-   :date   (convert-date (nth csv-cols date-col) options)
-   :descr  (unquote-string (get-col csv-cols descr-col))
-   :ref    (when (nat-int? ref-col)
-             (unquote-string (nth csv-cols ref-col)))})
+  "Parse a CSV entry with error handling. Returns parsed entry or throws
+   exception with row number and details."
+  [row-num {:keys [amount-col date-col descr-col ref-col] :as options} csv-cols]
+  (try
+    {:amount (convert-amount (nth csv-cols amount-col) options)
+     :date   (convert-date (nth csv-cols date-col) options)
+     :descr  (unquote-string (get-col csv-cols descr-col))
+     :ref    (when (nat-int? ref-col)
+               (unquote-string (nth csv-cols ref-col)))}
+    (catch IndexOutOfBoundsException e
+      (let [col-count (count csv-cols)
+            {:keys [amount-col date-col ref-col]} options]
+        (throw (ex-info
+                 (str "CSV row " row-num ": Column index out of bounds. "
+                      "Row has " col-count " column(s), but tried to access "
+                      "column " (.getMessage e) ". "
+                      "Check --date-col (" date-col "), "
+                      "--amount-col (" amount-col "), "
+                      (when (nat-int? ref-col) (str "--ref-col (" ref-col "), "))
+                      "and --descr-col settings.")
+                 {:type :column-out-of-bounds
+                  :row row-num
+                  :column-count col-count
+                  :csv-cols csv-cols}
+                 e))))
+    (catch DateTimeParseException e
+      (let [{:keys [date-col date-format]} options
+            date-value (nth csv-cols date-col nil)]
+        (throw (ex-info
+                 (str "CSV row " row-num ": Failed to parse date. "
+                      "Found '" date-value "' in column " date-col ", "
+                      "expected format '" date-format "'. "
+                      "Check --date-col and --date-format settings.")
+                 {:type :date-parse-error
+                  :row row-num
+                  :date-value date-value
+                  :date-format date-format
+                  :date-col date-col}
+                 e))))
+    (catch NumberFormatException e
+      (let [{:keys [amount-col amount-decimal-separator amount-grouping-separator]} options
+            amount-value (nth csv-cols amount-col nil)]
+        (throw (ex-info
+                 (str "CSV row " row-num ": Failed to parse amount. "
+                      "Found '" amount-value "' in column " amount-col ". "
+                      "Check --amount-col, --amount-decimal-separator ('"
+                      amount-decimal-separator "'), and --amount-grouping-separator ('"
+                      amount-grouping-separator "') settings.")
+                 {:type :amount-parse-error
+                  :row row-num
+                  :amount-value amount-value
+                  :amount-col amount-col}
+                 e))))
+    (catch NullPointerException e
+      (throw (ex-info
+               (str "CSV row " row-num ": Unexpected null value encountered. "
+                    "One of the columns may be empty or the column index may be invalid.")
+               {:type :null-pointer-error
+                :row row-num
+                :csv-cols csv-cols}
+               e)))
+    (catch Exception e
+      (throw (ex-info
+               (str "CSV row " row-num ": Unexpected error during parsing: " (.getMessage e))
+               {:type :unexpected-error
+                :row row-num
+                :csv-cols csv-cols}
+               e)))))
 
 
 (defn drop-lines
@@ -157,9 +222,15 @@
 
 
 (defn parse-csv
-  "Parse input CSV into a list of maps"
-  [reader {:keys [csv-field-separator] :as options}]
-  (map (partial parse-csv-entry options)
-       (-> reader
-           (csv/read-csv :separator csv-field-separator)
-           (drop-lines options))))
+  "Parse input CSV into a list of maps with comprehensive error handling"
+  [reader {:keys [csv-field-separator csv-skip-header-lines] :as options}]
+  (let [csv-lines (-> reader
+                      (csv/read-csv :separator csv-field-separator)
+                      (drop-lines options))
+        ;; Calculate starting row number (accounting for skipped header lines)
+        start-row (inc csv-skip-header-lines)]
+    (map-indexed
+      (fn [idx csv-cols]
+        (let [row-num (+ start-row idx)]
+          (parse-csv-entry row-num options csv-cols)))
+      csv-lines)))

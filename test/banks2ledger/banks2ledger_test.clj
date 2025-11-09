@@ -4,12 +4,15 @@
                                    tokenize toktab-inc toktab-update]]
     [banks2ledger.csv-parser :refer [all-indices clip-string convert-amount
                                      convert-date format-colspec format-value
-                                     get-col split-by-indices unquote-string]]
+                                     get-col parse-csv-entry split-by-indices
+                                     unquote-string]]
     [banks2ledger.ledger-parser :refer [parse-ledger-entry print-ledger-entry!
                                         split-ledger-entry]]
     [clojure.string :as string]
     [clojure.test :refer [deftest is testing]])
   (:import
+    (clojure.lang
+      ExceptionInfo)
     (java.util
       Locale)))
 
@@ -375,56 +378,56 @@
 
 (defn simple-salary-hook-formatter
   [entry]
-  (let [amount   (:amount entry)
+  (let [amount (:amount entry)
         currency (:currency entry)
-        year     (subs (:date entry) 0 4)
-        verifs   [{:comment "Pay stub data"}
-                  {:account  (format "Tax:%s:GrossIncome" year)
-                   :amount   "-00,000.00"
-                   :currency currency}
-                  {:account  (format "Tax:%s:IncomeTax" year)
-                   :amount   "0,000.00"
-                   :currency currency}
-                  {:account (format "Tax:%s:NetIncome" year)}
-                  {:comment "Distribution of net income"}
-                  {:account  (:account entry)
-                   :amount   amount
-                   :currency currency}
-                  {:account  "Income:Salary"
-                   :amount   (str "-" amount)
-                   :currency currency}]]
+        year (subs (:date entry) 0 4)
+        verifs [{:comment "Pay stub data"}
+                {:account  (format "Tax:%s:GrossIncome" year)
+                 :amount   "-00,000.00"
+                 :currency currency}
+                {:account  (format "Tax:%s:IncomeTax" year)
+                 :amount   "0,000.00"
+                 :currency currency}
+                {:account (format "Tax:%s:NetIncome" year)}
+                {:comment "Distribution of net income"}
+                {:account  (:account entry)
+                 :amount   amount
+                 :currency currency}
+                {:account  "Income:Salary"
+                 :amount   (str "-" amount)
+                 :currency currency}]]
     (print-ledger-entry! (conj entry [:verifs verifs]))))
 
 
 (defn advanced-salary-hook-formatter
   [entry]
   (let [gross-salary 38500.0
-        spp-contrib  (round (* 0.05 gross-salary))
-        recv-amount  (-> (:amount entry)
-                         (string/replace "," "")
-                         parse-double)
-        net-salary   (+ recv-amount spp-contrib)
-        income-tax   (- gross-salary net-salary)
-        currency     (:currency entry)
-        year         (subs (:date entry) 0 4)
-        verifs       [{:comment "Pay stub data"}
-                      {:account  (format "Tax:%s:GrossIncome" year)
-                       :amount   (format-value (- gross-salary))
-                       :currency currency}
-                      {:account  (format "Tax:%s:IncomeTax" year)
-                       :amount   (format-value income-tax)
-                       :currency currency}
-                      {:account (format "Tax:%s:NetIncome" year)}
-                      {:comment "Distribution of net income"}
-                      {:account  "Income:Salary"
-                       :amount   (format-value (- net-salary))
-                       :currency currency}
-                      {:account  "Equity:SPP:Collect"
-                       :amount   (format-value spp-contrib)
-                       :currency currency}
-                      {:account  (:account entry)
-                       :amount   (:amount entry)
-                       :currency currency}]]
+        spp-contrib (round (* 0.05 gross-salary))
+        recv-amount (-> (:amount entry)
+                        (string/replace "," "")
+                        parse-double)
+        net-salary (+ recv-amount spp-contrib)
+        income-tax (- gross-salary net-salary)
+        currency (:currency entry)
+        year (subs (:date entry) 0 4)
+        verifs [{:comment "Pay stub data"}
+                {:account  (format "Tax:%s:GrossIncome" year)
+                 :amount   (format-value (- gross-salary))
+                 :currency currency}
+                {:account  (format "Tax:%s:IncomeTax" year)
+                 :amount   (format-value income-tax)
+                 :currency currency}
+                {:account (format "Tax:%s:NetIncome" year)}
+                {:comment "Distribution of net income"}
+                {:account  "Income:Salary"
+                 :amount   (format-value (- net-salary))
+                 :currency currency}
+                {:account  "Equity:SPP:Collect"
+                 :amount   (format-value spp-contrib)
+                 :currency currency}
+                {:account  (:account entry)
+                 :amount   (:amount entry)
+                 :currency currency}]]
     (print-ledger-entry! (conj entry [:verifs verifs]))))
 
 
@@ -465,3 +468,95 @@
                 "    Income:Salary                         SEK -29,290.00" NL
                 "    Equity:SPP:Collect                    SEK 1,925.00" NL
                 "    Assets:Bank:Account                   SEK 27,365.00" NL NL)))))
+
+
+;; Tests for CSV parsing error handling
+
+(deftest test-parse-csv-entry-column-out-of-bounds
+  (testing "parse-csv-entry handles column out of bounds"
+    (let [options {:date-col                  0
+                   :amount-col                2
+                   :descr-col                 "%1"
+                   :ref-col                   -1
+                   :date-format               "yyyy-MM-dd"
+                   :amount-decimal-separator  \.
+                   :amount-grouping-separator \,}
+          csv-cols ["2024-01-01" "Description"]]            ; Missing column 2
+      (try
+        (parse-csv-entry 5 options csv-cols)
+        (is false "Should have thrown exception")
+        (catch ExceptionInfo e
+          (let [msg (ex-message e)
+                data (ex-data e)]
+            (is (re-find #"CSV row 5" msg) "Error message should include row number")
+            (is (re-find #"Column index out of bounds" msg) "Error message should describe the problem")
+            (is (re-find #"Row has 2 column" msg) "Error message should show actual column count")
+            (is (= :column-out-of-bounds (:type data)) "Exception data should have correct type")
+            (is (= 5 (:row data)) "Exception data should include row number")
+            (is (= 2 (:column-count data)) "Exception data should include column count")))))))
+
+
+(deftest test-parse-csv-entry-date-parse-error
+  (testing "parse-csv-entry handles date parsing errors"
+    (let [options {:date-col                  0
+                   :amount-col                2
+                   :descr-col                 "%1"
+                   :ref-col                   -1
+                   :date-format               "yyyy-MM-dd"
+                   :amount-decimal-separator  \.
+                   :amount-grouping-separator \,}
+          csv-cols ["2024/01/01" "Description" "100.00"]]   ; Wrong date format
+      (try
+        (parse-csv-entry 10 options csv-cols)
+        (is false "Should have thrown exception")
+        (catch ExceptionInfo e
+          (let [msg (ex-message e)
+                data (ex-data e)]
+            (is (re-find #"CSV row 10" msg) "Error message should include row number")
+            (is (re-find #"Failed to parse date" msg) "Error message should describe the problem")
+            (is (re-find #"2024/01/01" msg) "Error message should show the problematic value")
+            (is (re-find #"yyyy-MM-dd" msg) "Error message should show expected format")
+            (is (= :date-parse-error (:type data)) "Exception data should have correct type")
+            (is (= 10 (:row data)) "Exception data should include row number")
+            (is (= "2024/01/01" (:date-value data)) "Exception data should include date value")))))))
+
+
+(deftest test-parse-csv-entry-amount-parse-error
+  (testing "parse-csv-entry handles amount parsing errors"
+    (let [options {:date-col                  0
+                   :amount-col                2
+                   :descr-col                 "%1"
+                   :ref-col                   -1
+                   :date-format               "yyyy-MM-dd"
+                   :amount-decimal-separator  \.
+                   :amount-grouping-separator \,}
+          csv-cols ["2024-01-01" "Description" "not-a-number"]]
+      (try
+        (parse-csv-entry 15 options csv-cols)
+        (is false "Should have thrown exception")
+        (catch ExceptionInfo e
+          (let [msg (ex-message e)
+                data (ex-data e)]
+            (is (re-find #"CSV row 15" msg) "Error message should include row number")
+            (is (re-find #"Failed to parse amount" msg) "Error message should describe the problem")
+            (is (re-find #"not-a-number" msg) "Error message should show the problematic value")
+            (is (= :amount-parse-error (:type data)) "Exception data should have correct type")
+            (is (= 15 (:row data)) "Exception data should include row number")
+            (is (= "not-a-number" (:amount-value data)) "Exception data should include amount value")))))))
+
+
+(deftest test-parse-csv-entry-success
+  (testing "parse-csv-entry succeeds with valid input"
+    (let [options {:date-col                  0
+                   :amount-col                2
+                   :descr-col                 "%1"
+                   :ref-col                   3
+                   :date-format               "yyyy-MM-dd"
+                   :amount-decimal-separator  \.
+                   :amount-grouping-separator \,}
+          csv-cols ["2024-01-01" "Test Transaction" "1,234.56" "REF123"]
+          result (parse-csv-entry 1 options csv-cols)]
+      (is (= "2024/01/01" (:date result)) "Date should be converted correctly")
+      (is (= "1,234.56" (:amount result)) "Amount should be parsed correctly")
+      (is (= "Test Transaction" (:descr result)) "Description should be extracted")
+      (is (= "REF123" (:ref result)) "Reference should be extracted"))))
