@@ -26,15 +26,18 @@
    One string may become one or more tokens, returned as a seq
    - replace dates with degraded forms
    - convert to uppercase
-   - split at '/' ',' and space"
+   - split at '/' ',' and space
+   Returns empty seq if input is nil or blank."
   [s]
-  (filter seq
-          (-> (reduce-kv string/replace
-                         s
-                         {#"20\d{6}"            "YYYYMMDD"
-                          #"/\d{2}-\d{2}-\d{2}" "/YY-MM-DD"})
-              string/upper-case
-              (string/split #",|/| "))))
+  (if (string/blank? s)
+    []
+    (filter seq
+            (-> (reduce-kv string/replace
+                           s
+                           {#"20\d{6}"            "YYYYMMDD"
+                            #"/\d{2}-\d{2}-\d{2}" "/YY-MM-DD"})
+                string/upper-case
+                (string/split #",|/| ")))))
 
 
 (defn n-occur

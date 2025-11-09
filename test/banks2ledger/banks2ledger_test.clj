@@ -59,6 +59,14 @@
            ["COOP" "KONSUM" "YY-MM-DD"]))))
 
 
+(deftest test-tokenize-edge-cases
+  (testing "tokenize handles nil and blank inputs"
+    (is (= (tokenize nil) []) "nil input should return empty vector")
+    (is (= (tokenize "") []) "empty string should return empty vector")
+    (is (= (tokenize "   ") []) "whitespace-only should return empty vector")
+    (is (= (tokenize "  \t\n  ") []) "mixed whitespace should return empty vector")))
+
+
 (deftest test-n-occur
   (testing "n-occur"
     (is (= (n-occur {"Acc1" {"tok1" 2, "tok2" 1, "tok3" 1}} "tok1" "Acc1") 2))
