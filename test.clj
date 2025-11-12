@@ -8,11 +8,18 @@
 
 (cp/add-classpath "src:test")
 
-(require 'banks2ledger.banks2ledger-test)
+
+(require 'banks2ledger.bayesian-test
+         'banks2ledger.csv-parser-test
+         'banks2ledger.ledger-parser-test
+         'banks2ledger.integration-test)
 
 
 (def test-results
-  (t/run-tests 'banks2ledger.banks2ledger-test))
+  (t/run-tests 'banks2ledger.bayesian-test
+               'banks2ledger.csv-parser-test
+               'banks2ledger.ledger-parser-test
+               'banks2ledger.integration-test))
 
 
 (defn check-bb
