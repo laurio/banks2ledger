@@ -13,6 +13,37 @@
       Locale)))
 
 
+;; Constants for parsing and formatting
+(def ^:private leading-garbage-pattern
+  "Regex pattern to match everything up to a number"
+  #".+?(?=-?\d)")
+
+
+(def ^:private number-extraction-pattern
+  "Regex pattern to extract a numeric value from a string"
+  #"([-+]?[0-9]*\.?[0-9]+).*")
+
+
+(def ^:private amount-format-string
+  "Format string for displaying amounts with 2 decimal places"
+  "%,.2f")
+
+
+(def ^:private ledger-date-format
+  "Date format used in ledger output (yyyy/MM/dd)"
+  "yyyy/MM/dd")
+
+
+(def ^:private err-msg-amount-nil
+  "Error message for nil amount values"
+  "Amount column value is nil")
+
+
+(def ^:private err-msg-no-number
+  "Error message prefix when no valid number is found"
+  "No valid number found in: '")
+
+
 (defn clip-string
   "Clip string to the part before the given endmark
    endmark is first arg to allow meaningful use of `partial'"
@@ -105,41 +136,40 @@
 (defn remove-leading-garbage
   "Remove everything up to a number (an optional minus followed by a digit)"
   [s]
-  (let [up-to-a-digit-re #".+?(?=-?\d)"]
-    (string/replace-first (str " " s) up-to-a-digit-re "")))
+  (string/replace-first (str " " s) leading-garbage-pattern ""))
 
 
 (defn remove-trailing-garbage
   [s]
   (->> s
-       (re-matches #"([-+]?[0-9]*\.?[0-9]+).*")
+       (re-matches number-extraction-pattern)
        last))
 
 
 (defn format-value
   "Convert a double value to a canonically formatted amount"
   [value]
-  (String/format Locale/US "%,.2f" (into-array Double [value])))
+  (String/format Locale/US amount-format-string (into-array Double [value])))
 
 
 (defn convert-amount
   "Convert CSV amount string - note the return value is still a string!"
   [s {:keys [amount-decimal-separator amount-grouping-separator]}]
   (when (nil? s)
-    (throw (NumberFormatException. "Amount column value is nil")))
+    (throw (NumberFormatException. err-msg-amount-nil)))
   (let [cleaned (-> s
                     remove-leading-garbage
                     (string/replace (str amount-grouping-separator) "")
                     (string/replace (str amount-decimal-separator) ".")
                     remove-trailing-garbage)]
     (when (nil? cleaned)
-      (throw (NumberFormatException. (str "No valid number found in: '" s "'"))))
+      (throw (NumberFormatException. (str err-msg-no-number s "'"))))
     (-> cleaned
         parse-double
         format-value)))
 
 
-(let [ledger-entry-date-fmt (DateTimeFormatter/ofPattern "yyyy/MM/dd")]
+(let [ledger-entry-date-fmt (DateTimeFormatter/ofPattern ledger-date-format)]
   (defn convert-date
     "Convert date field from CSV format to Ledger entry format"
     [date-string {:keys [date-format]}]

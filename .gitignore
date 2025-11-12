@@ -15,3 +15,4 @@ pom.xml.asc
 .clj-kondo/
 acc_maps_dump.txt
 .claude/
+.nrepl-port

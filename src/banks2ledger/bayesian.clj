@@ -4,6 +4,52 @@
     [clojure.string :as string]))
 
 
+;; Constants for tokenization
+(def ^:private date-yyyymmdd-pattern
+  "Regex pattern for dates in YYYYMMDD format (e.g., 20060923)"
+  #"20\d{6}")
+
+
+(def ^:private date-yyyymmdd-token
+  "Token replacement for YYYYMMDD-format dates"
+  "YYYYMMDD")
+
+
+(def ^:private date-short-pattern
+  "Regex pattern for short dates like /YY-MM-DD (e.g., /16-03-21)"
+  #"/\d{2}-\d{2}-\d{2}")
+
+
+(def ^:private date-short-token
+  "Token replacement for short-format dates"
+  "/YY-MM-DD")
+
+
+(def ^:private token-split-pattern
+  "Regex pattern to split tokens by comma, slash, or space"
+  #",|/| ")
+
+
+(def ^:private default-probability
+  "Default probability when no occurrences are found"
+  0.0)
+
+
+(def ^:private unity
+  "Unity constant for probability calculations"
+  1.0)
+
+
+(def ^:private debug-format-width
+  "Column width for account names in debug output"
+  40)
+
+
+(def ^:private unknown-account
+  "Account name used when no match is found"
+  "Unknown")
+
+
 (defn toktab-inc
   "Bump account's token counter for token"
   [toktab [account token]]
@@ -34,10 +80,10 @@
     (filter seq
             (-> (reduce-kv string/replace
                            s
-                           {#"20\d{6}"            "YYYYMMDD"
-                            #"/\d{2}-\d{2}-\d{2}" "/YY-MM-DD"})
+                           {date-yyyymmdd-pattern date-yyyymmdd-token
+                            date-short-pattern    date-short-token})
                 string/upper-case
-                (string/split #",|/| ")))))
+                (string/split token-split-pattern)))))
 
 
 (defn n-occur
@@ -58,7 +104,7 @@
                        (map (fn [acc] (n-occur acc-maps token acc)))
                        (apply +))]
     (if (zero? n-occ-all)
-      0.0
+      default-probability
       (let [n-occ (n-occur acc-maps token account)]
         (/ (float n-occ) n-occ-all)))))
 
@@ -67,7 +113,7 @@
   "Combine probability values according to the Bayes theorem"
   [probs]
   (let [prod-probs (apply * probs)
-        prod-comps (apply * (map #(- 1.0 %) probs))]
+        prod-comps (apply * (map #(- unity %) probs))]
     (/ prod-probs (+ prod-probs prod-comps))))
 
 
@@ -115,10 +161,10 @@
       (doseq [tok tokens]
         (printf ";  '%s':%n" tok)
         (doseq [p (best-accounts acc-maps tok)]
-          (printf ";     %40s %f%n" (second p) (first p))))
+          (printf (str ";     %-" debug-format-width "s %f%n") (second p) (first p))))
       (printf "; Combined probability table:%n")
       (doseq [e p-tab]
-        (printf ";     %40s %f%n" (second e) (first e))))
+        (printf (str ";     %-" debug-format-width "s %f%n") (second e) (first e))))
     (remove #(string/includes? (second %) account)
             p-tab)))
 
@@ -130,10 +176,10 @@
   (let [accs (account-for-descr acc-maps descr account debug)]
     (cond
       (empty? accs)
-      "Unknown"
+      unknown-account
 
       (= (ffirst accs) (first (second accs)))
-      "Unknown"
+      unknown-account
 
       :else
       (second (first accs)))))

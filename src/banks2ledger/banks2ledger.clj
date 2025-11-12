@@ -18,6 +18,17 @@
       IOException)))
 
 
+;; Constants for debug output
+(def ^:private debug-output-filename
+  "Filename for debug account maps dump"
+  "acc_maps_dump.txt")
+
+
+(def ^:private debug-count-width
+  "Column width for token count in debug output"
+  6)
+
+
 (defn filepath-exists?
   [filepath]
   (.exists (io/file filepath)))
@@ -46,17 +57,17 @@
   "Produce a printout of the acc-maps passed as arg; useful for debugging"
   [acc-maps]
   (try
-    (with-open [acc-maps-dump-file (io/writer "acc_maps_dump.txt")]
+    (with-open [acc-maps-dump-file (io/writer debug-output-filename)]
       (binding [*out* acc-maps-dump-file]
         (doseq [acc (sort (keys acc-maps))]
           (printf "'%s':%n" acc)
           (let [acc-map (get acc-maps acc)]
             (doseq [tok-count (sort-by second > acc-map)]
-              (printf " %6d  '%s'%n" (second tok-count) (first tok-count))))
+              (printf (str " %" debug-count-width "d  '%s'%n") (second tok-count) (first tok-count))))
           (println))))
     (catch IOException e
       (binding [*out* *err*]
-        (println "Warning: Failed to write debug output file 'acc_maps_dump.txt':" (.getMessage e))
+        (println (str "Warning: Failed to write debug output file '" debug-output-filename "':") (.getMessage e))
         (println "Continuing without debug output...")))))
 
 
