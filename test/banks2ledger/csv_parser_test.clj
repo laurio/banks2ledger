@@ -40,7 +40,7 @@
 
 (deftest test-format-value-with-nonUS-locale
   (let [default-locale (Locale/getDefault)]
-    (Locale/setDefault (Locale. "sv" "SE"))
+    (Locale/setDefault (Locale/forLanguageTag "sv-SE"))
     (testing "format-value-with-nonUS-locale"
       (is (= (format-value 0.0) "0.00"))
       (is (= (format-value -10.237) "-10.24"))
