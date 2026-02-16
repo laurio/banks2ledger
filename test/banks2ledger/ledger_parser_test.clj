@@ -1,9 +1,14 @@
 (ns banks2ledger.ledger-parser-test
   "Tests for ledger file parsing and output formatting."
   (:require
-    [banks2ledger.ledger-parser :refer [parse-ledger-entry print-ledger-entry!
-                                        split-ledger-entry]]
-    [clojure.test :refer [deftest is testing]]))
+    [banks2ledger.ledger-parser :refer [parse-ledger parse-ledger-entry
+                                        print-ledger-entry! split-ledger-entry]]
+    [clojure.test :refer [deftest is testing]])
+  (:import
+    (clojure.lang
+      ExceptionInfo)
+    (java.io
+      IOException)))
 
 
 ;; String containing the platform-dependent newline character, to verify
@@ -92,6 +97,32 @@
            {:date "2018/01/22"
             :toks ["(1234567890)" "CLAS" "OHLSON" "YY-MM-DD"]
             :accs ["Expenses:Supplies" "Assets:Bank account"]}))))
+
+
+(deftest test-parse-ledger-file-not-found
+  (testing "parse-ledger throws ex-info for non-existent file"
+    (let [bad-path "/tmp/no-such-ledger-file.dat"]
+      (is (thrown-with-msg? ExceptionInfo
+                            #"Failed to read ledger file"
+            (parse-ledger bad-path)))
+      (try
+        (parse-ledger bad-path)
+        (catch ExceptionInfo e
+          (is (= :file-not-found (:type (ex-data e))))
+          (is (= bad-path (:file (ex-data e)))))))))
+
+
+(deftest test-parse-ledger-io-error
+  (testing "parse-ledger throws ex-info for IOException"
+    (with-redefs [slurp (fn [_] (throw (IOException. "disk read error")))]
+      (is (thrown-with-msg? ExceptionInfo
+                            #"Error reading ledger file"
+            (parse-ledger "any-file.dat")))
+      (try
+        (parse-ledger "any-file.dat")
+        (catch ExceptionInfo e
+          (is (= :io-error (:type (ex-data e))))
+          (is (= "any-file.dat" (:file (ex-data e)))))))))
 
 
 (deftest test-print-ledger-entry
