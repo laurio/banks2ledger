@@ -184,6 +184,7 @@
       (empty? accs)
       unknown-account
 
+      ;; If the top two accounts have equal probability, the match is ambiguous
       (= (ffirst accs) (first (second accs)))
       unknown-account
 

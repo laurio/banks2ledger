@@ -1,8 +1,8 @@
 (ns banks2ledger.bayesian-test
   "Tests for Bayesian inference and tokenization logic."
   (:require
-    [banks2ledger.bayesian :refer [bayes* best-accounts n-occur p-belong
-                                   tokenize toktab-inc toktab-update]]
+    [banks2ledger.bayesian :refer [bayes* best-accounts decide-account n-occur
+                                   p-belong tokenize toktab-inc toktab-update]]
     [clojure.test :refer [deftest is testing]]))
 
 
@@ -96,3 +96,23 @@
     (is (= 0.0 (bayes* [])) "empty input should return 0.0"))
   (testing "single value"
     (is (= 0.6 (bayes* [0.6])) "single value should pass through unchanged")))
+
+
+(deftest test-decide-account
+  (let [acc-maps {"Expenses:Food"    {"GROCERY" 5, "STORE" 3}
+                  "Expenses:Transport" {"BUS" 4, "TRAIN" 2}
+                  "Income:Salary"    {"EMPLOYER" 10}}]
+    (testing "clear winner returns the top account"
+      (is (= "Expenses:Food"
+             (decide-account acc-maps "GROCERY STORE" "Income:Salary" {}))))
+    (testing "single-result match returns that account"
+      (is (= "Income:Salary"
+             (decide-account acc-maps "EMPLOYER" "Expenses:Food" {}))))
+    (testing "empty results return Unknown"
+      (is (= "Unknown"
+             (decide-account acc-maps "NONEXISTENT" "Income:Salary" {}))))
+    (testing "tied top-2 probabilities return Unknown"
+      (let [tied-maps {"Expenses:A" {"TOK" 3}
+                       "Expenses:B" {"TOK" 3}}]
+        (is (= "Unknown"
+               (decide-account tied-maps "TOK" "Income:X" {})))))))
