@@ -188,9 +188,6 @@
       errors                                                ; errors => exit with description of errors
       {:exit-message (error-msg errors)}
 
-      (not (filepath-exists? (:ledger-file options)))
-      {:exit-message (error-msg [(str "Ledger file '" (:ledger-file options) "' not found")])}
-
       :else
       {:options options})))
 
