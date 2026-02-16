@@ -5,7 +5,7 @@
 
 
 ;; hooks allow the user to generate custom output for certain entries
-(def ledger-entry-hooks! (atom nil))
+(def ledger-entry-hooks (atom nil))
 
 
 (defn add-entry-hook
@@ -14,7 +14,7 @@
    The predicate determines if the hook applies to an entry.
    The formatter generates the output for matching entries."
   [hook]
-  (swap! ledger-entry-hooks! #(conj % hook)))
+  (swap! ledger-entry-hooks #(conj % hook)))
 
 
 (defn process-hooks!
@@ -22,7 +22,7 @@
    If a hook's predicate matches, use its formatter.
    Otherwise, use the default formatter."
   [entry]
-  (loop [hooks @ledger-entry-hooks!]
+  (loop [hooks @ledger-entry-hooks]
     (let [{:keys [formatter predicate] :as hook} (first hooks)]
       (cond
         (nil? hook)

@@ -89,7 +89,7 @@
   (let [[first-line0 & rest-lines] entry-seq
         first-line (csv/clip-string pipe-separator first-line0) ; N.B: this is non-standard (not part of ledger-cli)
         [date descr] (string/split first-line space-split-pattern space-split-limit)
-        accs       (map (partial csv/clip-string double-space-separator) rest-lines)]
+        accs (map (partial csv/clip-string double-space-separator) rest-lines)]
     {:accs accs
      :date date
      :toks (bayesian/tokenize descr)}))
@@ -100,7 +100,7 @@
   [filename]
   (try
     (->> (string/split (slurp filename) entry-separator-pattern)
-         (map string/trim)                                    ; remove odd newlines
+         (map string/trim)                                  ; remove odd newlines
          (filter seq)
          (map split-ledger-entry)
          (filter #(> (count %) min-entry-line-count))
@@ -145,13 +145,12 @@
 (defn add-default-verifications
   "generate verifications for the default case"
   [{:keys [account amount counter-acc currency] :as entry}]
-  (conj entry
-        [:verifs (case (first amount)
-                   \- [{:account  counter-acc
-                        :amount   (subs amount amount-substring-start)
-                        :currency currency}
-                       {:account account}]
-                   [{:account  account
-                     :amount   amount
-                     :currency currency}
-                    {:account counter-acc}])]))
+  (assoc entry :verifs (case (first amount)
+                         \- [{:account  counter-acc
+                              :amount   (subs amount amount-substring-start)
+                              :currency currency}
+                             {:account account}]
+                         [{:account  account
+                           :amount   amount
+                           :currency currency}
+                          {:account counter-acc}])))
