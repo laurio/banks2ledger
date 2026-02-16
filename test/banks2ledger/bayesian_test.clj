@@ -1,7 +1,7 @@
 (ns banks2ledger.bayesian-test
   "Tests for Bayesian inference and tokenization logic."
   (:require
-    [banks2ledger.bayesian :refer [best-accounts n-occur p-belong
+    [banks2ledger.bayesian :refer [bayes* best-accounts n-occur p-belong
                                    tokenize toktab-inc toktab-update]]
     [clojure.test :refer [deftest is testing]]))
 
@@ -79,3 +79,20 @@
                            "Acc2" {"tok1" 2, "tok2" 8}
                            "Acc3" {"tok2" 8}
                            "Acc4" {"tok1" 5, "tok2" 5}} "tok1")))))
+
+
+(deftest test-bayes*
+  (testing "normal probabilities"
+    (let [result (bayes* [0.6 0.8 0.9])]
+      (is (< 0.9 result 1.0) "combined high probabilities should be very high")))
+  (testing "all-zero probabilities"
+    (is (= 0.0 (bayes* [0.0 0.0])) "all-zero probs yield 0.0"))
+  (testing "all-one probabilities"
+    (is (= 1.0 (bayes* [1.0 1.0])) "all-one probs yield 1.0"))
+  (testing "mixed zero and one probabilities (NaN bug case)"
+    (is (= 0.0 (bayes* [0.0 1.0])) "mixed 0.0 and 1.0 should return 0.0, not NaN")
+    (is (= 0.0 (bayes* [1.0 0.0])) "mixed 1.0 and 0.0 should return 0.0, not NaN"))
+  (testing "empty input"
+    (is (= 0.0 (bayes* [])) "empty input should return 0.0"))
+  (testing "single value"
+    (is (= 0.6 (bayes* [0.6])) "single value should pass through unchanged")))
