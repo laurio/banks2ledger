@@ -110,11 +110,17 @@
 
 
 (defn bayes*
-  "Combine probability values according to the Bayes theorem"
+  "Combine probability values according to the Bayes theorem.
+   Returns default-probability for empty input or zero denominator."
   [probs]
-  (let [prod-probs (apply * probs)
-        prod-comps (apply * (map #(- unity %) probs))]
-    (/ prod-probs (+ prod-probs prod-comps))))
+  (if (empty? probs)
+    default-probability
+    (let [prod-probs (apply * probs)
+          prod-comps (apply * (map #(- unity %) probs))
+          denom      (+ prod-probs prod-comps)]
+      (if (zero? denom)
+        default-probability
+        (/ prod-probs denom)))))
 
 
 (defn p-belong*
