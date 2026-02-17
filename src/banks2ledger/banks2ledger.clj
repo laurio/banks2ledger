@@ -238,8 +238,9 @@
                                :file (:csv-file options)}
                               e)))))
         (catch ExceptionInfo e
-          ;; Re-throw our own ex-info exceptions
-          (throw e))
+          (binding [*out* *err*]
+            (println (.getMessage e)))
+          (System/exit 1))
         (catch Exception e
           ;; Catch any other unexpected exceptions
           (binding [*out* *err*]
