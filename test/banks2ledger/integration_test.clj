@@ -91,7 +91,7 @@
                 {:account  "Income:Salary"
                  :amount   (str "-" amount)
                  :currency currency}]]
-    (print-ledger-entry! (conj entry [:verifs verifs]))))
+    (print-ledger-entry! (assoc entry :verifs verifs))))
 
 
 (defn advanced-salary-hook-formatter
@@ -123,7 +123,7 @@
                 {:account  (:account entry)
                  :amount   (:amount entry)
                  :currency currency}]]
-    (print-ledger-entry! (conj entry [:verifs verifs]))))
+    (print-ledger-entry! (assoc entry :verifs verifs))))
 
 
 ;; Verify the hook formatters defined above
