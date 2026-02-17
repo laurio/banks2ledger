@@ -5,7 +5,7 @@
 
 
 ;; hooks allow the user to generate custom output for certain entries
-(def ledger-entry-hooks (atom nil))
+(def ledger-entry-hooks (atom []))
 
 
 (defn add-entry-hook
