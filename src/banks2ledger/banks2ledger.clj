@@ -147,10 +147,7 @@
     :validate [filepath-exists? "The specified hooks hooks file doesn't exist"]]
    ["-g" "--debug DEBUG" "Include debug information in the generated output"
     :default false
-    :parse-fn #(case %
-                 "true" true
-                 "false" false
-                 %)
+    :parse-fn {"true" true "false" false}
     :validate [boolean? "Must be 'true' or 'false'"]]
    ["-h" "--help"]])
 
