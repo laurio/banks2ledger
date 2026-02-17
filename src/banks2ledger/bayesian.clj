@@ -6,8 +6,8 @@
 
 ;; Constants for tokenization
 (def ^:private date-yyyymmdd-pattern
-  "Regex pattern for dates in YYYYMMDD format (e.g., 20060923)"
-  #"20\d{6}")
+  "Regex pattern for dates in YYYYMMDD format (e.g., 19990101, 20060923)"
+  #"(?:19|20|21)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])")
 
 
 (def ^:private date-yyyymmdd-token
