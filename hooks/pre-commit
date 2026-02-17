@@ -1,0 +1,85 @@
+#!/usr/bin/env bb
+
+;; Pre-commit hook that mirrors CI checks:
+;; 1. cljstyle check (formatting)
+;; 2. clj-kondo --lint (linting)
+;; 3. bb ./test.clj (unit + end-to-end tests)
+
+(require '[babashka.process :as p]
+         '[clojure.string :as str])
+
+(defn staged-files
+  "Returns staged files matching the given extensions, filtered to ACM (added/copied/modified)."
+  [extensions]
+  (let [{:keys [out]} (p/shell {:out :string}
+                                "git" "diff" "--cached" "--name-only" "--diff-filter=ACM")
+        ext-set (set extensions)]
+    (->> (str/split-lines out)
+         (filter #(ext-set (last (str/split % #"\."))))
+         (filter #(not (str/blank? %))))))
+
+(defn command-available?
+  [cmd]
+  (try
+    (p/shell {:out :string :err :string} "which" cmd)
+    true
+    (catch Exception _ false)))
+
+(defn warn-partially-staged
+  "Warn about files that are partially staged (index differs from working tree)."
+  [files]
+  (when (seq files)
+    (let [{:keys [out]} (p/shell {:out :string}
+                                  "git" "diff" "--name-only")
+          modified (set (str/split-lines out))
+          partial  (filter modified files)]
+      (when (seq partial)
+        (println "Warning: partially staged files detected:")
+        (doseq [f partial]
+          (println (str "  " f)))
+        (println "Checks will run against the working tree version, not the staged version.")
+        (println)))))
+
+(let [clj-files (staged-files ["clj" "cljc" "cljs"])
+      edn-files (staged-files ["edn"])
+      style-files (concat clj-files edn-files)
+      lint-files clj-files
+      failed? (atom false)]
+
+  (when (seq clj-files)
+    (warn-partially-staged clj-files))
+
+  ;; cljstyle check
+  (if (seq style-files)
+    (if (command-available? "cljstyle")
+      (do
+        (println "Running cljstyle check...")
+        (let [{:keys [exit]} (p/shell {:continue true} "cljstyle" "check")]
+          (when-not (zero? exit)
+            (println "\ncljstyle check failed. Run 'cljstyle fix' to auto-format.\n")
+            (reset! failed? true))))
+      (println "Warning: cljstyle not found, skipping format check."))
+    (println "No Clojure/EDN files staged, skipping cljstyle check."))
+
+  ;; clj-kondo lint
+  (if (seq lint-files)
+    (if (command-available? "clj-kondo")
+      (do
+        (println "Running clj-kondo...")
+        (let [{:keys [exit]} (p/shell {:continue true}
+                                       "clj-kondo" "--lint" "src")]
+          (when-not (zero? exit)
+            (println "\nclj-kondo found issues.\n")
+            (reset! failed? true))))
+      (println "Warning: clj-kondo not found, skipping lint check."))
+    (println "No Clojure files staged, skipping clj-kondo lint."))
+
+  ;; tests (always run)
+  (println "Running tests...")
+  (let [{:keys [exit]} (p/shell {:continue true} "bb" "./test.clj")]
+    (when-not (zero? exit)
+      (reset! failed? true)))
+
+  (when @failed?
+    (println "\nPre-commit checks failed. Fix the issues above or use --no-verify to skip.")
+    (System/exit 1)))

@@ -171,6 +171,22 @@ example demonstrating the problem.
 Feel free to open a pull request if you find a bug, or have a feature
 you would like to see included.
 
+### Pre-commit hooks
+
+The repository includes pre-commit hooks that mirror the CI checks
+(formatting, linting, tests). To enable them, run once after cloning:
+
+    git config core.hooksPath hooks
+
+The hooks require [cljstyle] and [clj-kondo]. Install them with:
+
+    brew install cljstyle clj-kondo          # macOS
+
+If either tool is missing, the hook will warn but not block the commit.
+You can skip the hooks with `git commit --no-verify` when needed.
+
+### Tests
+
 There are several unit tests you can run via `bb test.clj`. Make sure
 they don't break; also, add coverage for any new functionality you
 might add or regression tests for bugs you might fix.
@@ -192,3 +208,7 @@ roll a `Makefile` or similar solution to process your input files; see
 [Clojure]:                    https://clojure.org
 
 [Babashka]:                   https://babashka.org
+
+[cljstyle]:                   https://github.com/greglook/cljstyle
+
+[clj-kondo]:                  https://github.com/clj-kondo/clj-kondo
