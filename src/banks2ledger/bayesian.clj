@@ -78,10 +78,10 @@
   (if (string/blank? s)
     []
     (filter seq
-            (-> (reduce-kv string/replace
-                           s
-                           {date-yyyymmdd-pattern date-yyyymmdd-token
-                            date-short-pattern    date-short-token})
+            (-> (reduce (fn [s [pat repl]] (string/replace s pat repl))
+                        s
+                        [[date-yyyymmdd-pattern date-yyyymmdd-token]
+                         [date-short-pattern    date-short-token]])
                 string/upper-case
                 (string/split token-split-pattern)))))
 
