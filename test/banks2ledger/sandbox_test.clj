@@ -50,3 +50,28 @@
                (catch clojure.lang.ExceptionInfo e e))]
       (is (some? ex) "Should throw ExceptionInfo")
       (is (= :hooks-file-not-found (:type (ex-data ex)))))))
+
+
+(deftest test-syntax-error-message
+  (testing "Syntax errors produce a clear message with location"
+    (let [ex (try
+               (sandbox/load-hooks-file "test/data/malicious_syntax.clj")
+               nil
+               (catch clojure.lang.ExceptionInfo e e))]
+      (is (some? ex) "Should throw ExceptionInfo")
+      (is (= :hooks-load-error (:type (ex-data ex))))
+      (is (re-find #"Syntax error in hooks file" (.getMessage ex)))
+      (is (re-find #"at line \d+" (.getMessage ex))))))
+
+
+(deftest test-unresolved-symbol-error-message
+  (testing "Unresolved symbol errors produce a clear message with location"
+    (let [ex (try
+               (sandbox/load-hooks-file "test/data/malicious_unresolved.clj")
+               nil
+               (catch clojure.lang.ExceptionInfo e e))]
+      (is (some? ex) "Should throw ExceptionInfo")
+      (is (= :hooks-load-error (:type (ex-data ex))))
+      (is (re-find #"Error in hooks file" (.getMessage ex)))
+      (is (re-find #"at line \d+" (.getMessage ex)))
+      (is (re-find #"no-such-function" (.getMessage ex))))))

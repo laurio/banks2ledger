@@ -25,6 +25,26 @@
       'clojure.string              (sci/copy-ns clojure.string (sci/create-ns 'clojure.string))}}))
 
 
+(defn- format-sci-error
+  "Format a SCI exception into a user-friendly error message."
+  [hooks-file ^Exception e]
+  (let [data (ex-data e)
+        line (:line data)
+        col  (:column data)
+        loc  (when line
+               (str " at line " line (when col (str ", column " col))))
+        detail (.getMessage e)]
+    (case (:type data)
+      :sci.error/parse
+      (str "Syntax error in hooks file '" hooks-file "'" loc ": " detail)
+
+      :sci/error
+      (str "Error in hooks file '" hooks-file "'" loc ": " detail)
+
+      ;; Fallback for unexpected exception types
+      (str "Error loading hooks file '" hooks-file "': " detail))))
+
+
 (defn load-hooks-file
   "Load and evaluate a hooks file in a sandboxed SCI context.
    Only explicitly exposed project functions are available to the hooks code."
@@ -39,7 +59,7 @@
                        :file hooks-file}
                       e)))
     (catch Exception e
-      (throw (ex-info (str "Error loading hooks file '" hooks-file "': " (.getMessage e))
+      (throw (ex-info (format-sci-error hooks-file e)
                       {:type :hooks-load-error
                        :file hooks-file}
                       e)))))
