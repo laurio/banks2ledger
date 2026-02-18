@@ -52,8 +52,8 @@
 
 
 (def ^:private min-entry-line-count
-  "Minimum number of lines for a valid ledger entry"
-  1)
+  "Minimum number of lines for a valid ledger entry (header + at least one account)"
+  2)
 
 
 (def ^:private account-column-width
@@ -103,7 +103,7 @@
          (map string/trim)                                  ; remove odd newlines
          (filter seq)
          (map split-ledger-entry)
-         (filter #(> (count %) min-entry-line-count))
+         (filter #(>= (count %) min-entry-line-count))
          (map parse-ledger-entry)
          (reduce bayesian/toktab-update {}))
     (catch FileNotFoundException e
