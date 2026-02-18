@@ -27,19 +27,19 @@
 (deftest test-sandbox-blocks-system-exit
   (testing "System/exit is not accessible in the sandbox"
     (is (thrown? Exception
-          (sandbox/load-hooks-file "test/data/malicious_exit.clj")))))
+          (sandbox/load-hooks-file "test/data/malicious_exit.txt")))))
 
 
 (deftest test-sandbox-blocks-file-access
   (testing "slurp (file I/O) is not accessible in the sandbox"
     (is (thrown? Exception
-          (sandbox/load-hooks-file "test/data/malicious_slurp.clj")))))
+          (sandbox/load-hooks-file "test/data/malicious_slurp.txt")))))
 
 
 (deftest test-sandbox-blocks-shell-access
   (testing "Shell commands are not accessible in the sandbox"
     (is (thrown? Exception
-          (sandbox/load-hooks-file "test/data/malicious_shell.clj")))))
+          (sandbox/load-hooks-file "test/data/malicious_shell.txt")))))
 
 
 (deftest test-load-hooks-file-not-found
@@ -55,7 +55,7 @@
 (deftest test-syntax-error-message
   (testing "Syntax errors produce a clear message with location"
     (let [ex (try
-               (sandbox/load-hooks-file "test/data/malicious_syntax.clj")
+               (sandbox/load-hooks-file "test/data/malicious_syntax.txt")
                nil
                (catch clojure.lang.ExceptionInfo e e))]
       (is (some? ex) "Should throw ExceptionInfo")
@@ -67,7 +67,7 @@
 (deftest test-unresolved-symbol-error-message
   (testing "Unresolved symbol errors produce a clear message with location"
     (let [ex (try
-               (sandbox/load-hooks-file "test/data/malicious_unresolved.clj")
+               (sandbox/load-hooks-file "test/data/malicious_unresolved.txt")
                nil
                (catch clojure.lang.ExceptionInfo e e))]
       (is (some? ex) "Should throw ExceptionInfo")
