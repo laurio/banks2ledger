@@ -55,8 +55,8 @@
   [toktab [account token]]
   (let [acctab0 (get toktab account {})
         cnt     (get acctab0 token 0)
-        acctab  (conj acctab0 [token (inc cnt)])]
-    (conj toktab [account acctab])))
+        acctab  (assoc acctab0 token (inc cnt))]
+    (assoc toktab account acctab)))
 
 
 (defn toktab-update
