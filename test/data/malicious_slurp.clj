@@ -1,0 +1,1 @@
+(slurp "/etc/passwd")

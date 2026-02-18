@@ -7,6 +7,7 @@
     [banks2ledger.csv-parser :as csv-parser]
     [banks2ledger.hooks :as hooks]
     [banks2ledger.ledger-parser :as ledger]
+    [banks2ledger.sandbox :as sandbox]
     [clojure.java.io :as io]
     [clojure.string :as string]
     [clojure.tools.cli :as tools-cli])
@@ -206,18 +207,7 @@
           (when (:debug options)
             (debug-print-acc-maps acc-maps))
           (when-let [hooks-file (:hooks-file options)]
-            (try
-              (load-file hooks-file)
-              (catch FileNotFoundException e
-                (throw (ex-info (str "Failed to load hooks file: " (.getMessage e))
-                                {:type :hooks-file-not-found
-                                 :file hooks-file}
-                                e)))
-              (catch Exception e
-                (throw (ex-info (str "Error loading hooks file '" hooks-file "': " (.getMessage e))
-                                {:type :hooks-load-error
-                                 :file hooks-file}
-                                e)))))
+            (sandbox/load-hooks-file hooks-file))
           (try
             (with-open [reader (io/reader (:csv-file options)
                                           :encoding (:csv-file-encoding options))]
